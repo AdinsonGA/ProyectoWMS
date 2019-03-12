@@ -21,6 +21,10 @@ namespace CapaDatos
         public static string Conn1 = ConfigurationManager.ConnectionStrings["Dbf1"].ConnectionString;
         public static string Conn2 = ConfigurationManager.ConnectionStrings["Dbf2"].ConnectionString;
 
+        public  static void prueba()
+            {
+
+            }
 
         public static DataTable Obt_dbf(string sql)
         {
