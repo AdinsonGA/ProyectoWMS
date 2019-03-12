@@ -5,7 +5,7 @@ using System.ServiceProcess;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Servicio_Interface_WMS
+namespace CapaServicio
 {
     static class Program
     {
@@ -14,12 +14,23 @@ namespace Servicio_Interface_WMS
         /// </summary>
         static void Main()
         {
+
+            if (Environment.UserInteractive)
+            {
+                ServicioInterfaceWMS service1 = new ServicioInterfaceWMS();
+                service1.TestStartupAndStop();
+            }
+            else
+            {
+              
+            
             ServiceBase[] ServicesToRun;
             ServicesToRun = new ServiceBase[]
             {
-                new Service1()
+                new ServicioInterfaceWMS()
             };
             ServiceBase.Run(ServicesToRun);
+            }
         }
     }
 }

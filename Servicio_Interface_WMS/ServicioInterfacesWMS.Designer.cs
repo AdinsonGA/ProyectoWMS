@@ -1,6 +1,6 @@
-﻿namespace Servicio_Interface_WMS
+﻿namespace CapaServicio
 {
-    partial class Service1
+    partial class ServicioInterfaceWMS
     {
         /// <summary> 
         /// Variable del diseñador necesaria.
@@ -28,8 +28,11 @@
         /// </summary>
         private void InitializeComponent()
         {
-            components = new System.ComponentModel.Container();
-            this.ServiceName = "Service1";
+            // 
+            // ServicioInterfaceWMS
+            // 
+            this.ServiceName = "ServicioInterfaceWMS";
+
         }
 
         #endregion
