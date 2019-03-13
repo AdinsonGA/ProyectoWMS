@@ -249,14 +249,14 @@ namespace CapaInterface
                 str.Append("" + delimited);
                 str.Append("" + delimited);
                 str.Append("" + delimited);
-                str.Append(datarow["cgud_canal"].ToString() + delimited);       // Ruta despacho ??
+                str.Append("" + delimited);                                     // Ruta despacho ??
                 str.Append(datarow["cgud_almac"].ToString() + delimited);       // Almacen 
-                str.Append(datarow["cgud_canal"].ToString() + delimited);       // Retail , No Retail 
+                str.Append(datarow["cgud_canal"].ToString() + delimited);       // 5 , 6 
                 str.Append("" + delimited);                                     // RUC destinatario
                 str.Append("\r\n");
             }
 
-            if (File.Exists(fileTXTc)) File.Delete(fileTXTc);
+            if (File.Exists(fileTXTc)) { File.Delete(fileTXTc); }
             File.WriteAllText(fileTXTc, str.ToString());
 
 
@@ -265,6 +265,7 @@ namespace CapaInterface
             string keyitem = null;
             char cero = '0';
             string grupo = "";
+
             str = new StringBuilder();
 
             grupo = dat_prescdetRetail.Rows[0]["dgud_gudis"].ToString();
@@ -295,9 +296,9 @@ namespace CapaInterface
 
                             // Evaluar si el articulo es prepack o solid
                             if (datarow["dgud_cpack"].ToString() == "00001")
-                                keyitem = datarow["dgud_artic"].ToString() + datarow["dgud_calid"].ToString() + datarow["dgud_cpack"].ToString() + DatosGenerales.CodRetail;
+                            { keyitem = datarow["dgud_artic"].ToString() + datarow["dgud_calid"].ToString() + datarow["dgud_cpack"].ToString() + DatosGenerales.CodRetail; }
                             else
-                                keyitem = datarow["dgud_artic"].ToString() + datarow["dgud_calid"].ToString() + pos + DatosGenerales.CodRetail;                                                       
+                            { keyitem = datarow["dgud_artic"].ToString() + datarow["dgud_calid"].ToString() + pos + DatosGenerales.CodRetail; }
                             
                             str.Append(datarow["dgud_gudis"].ToString() + delimited);        // Numero de orden de despacho
                             str.Append(wcodalm + delimited);                                  // Facility code
@@ -322,7 +323,7 @@ namespace CapaInterface
 
             }
 
-            if (File.Exists(fileTXTd)) File.Delete(fileTXTd);
+            if (File.Exists(fileTXTd)) { File.Delete(fileTXTd); }
             File.WriteAllText(fileTXTd, str.ToString());
 
             exito = (File.Exists(fileTXTc) && File.Exists(fileTXTd));
@@ -370,7 +371,7 @@ namespace CapaInterface
                 str.Append(datarow["oc_client"].ToString() + delimited);        // Cliente 
                 for (int i = 1; i <= 17; i++)
                 { str.Append("" + delimited); };
-                str.Append("" + delimited);                                     // Nro O/C cliente ??
+                str.Append(datarow["oc_docref"].ToString() + delimited);        // Nro O/C cliente ??
                 str.Append("" + delimited);
                 str.Append("" + delimited);
                 str.Append(datarow["oc_caden"].ToString() + delimited);         // Cadena
@@ -380,9 +381,9 @@ namespace CapaInterface
                 str.Append("" + delimited);
                 str.Append("" + delimited);
                 str.Append("" + delimited);
-                str.Append(datarow["oc_canal"].ToString() + delimited);         // Ruta despacho ??
+                str.Append("" + delimited);                                      // Ruta despacho ??
                 str.Append(datarow["oc_almac"].ToString() + delimited);         // Almacen 
-                str.Append(datarow["oc_canal"].ToString() + delimited);         // Retail , No Retail 
+                str.Append(datarow["oc_canal"].ToString() + delimited);         // 5 , 6 
                 str.Append(datarow["oc_ccli"].ToString() + delimited);          // RUC destinatario
                 str.Append("\r\n");
 
@@ -554,16 +555,16 @@ namespace CapaInterface
 
             string sql = "";
 
-            sql = "SELECT cgud_gudis,cgud_tndcl,cgud_canal,cgud_caden,cgud_almac,cgud_femis FROM SCCCGUD WHERE EMPTY(CGUD_FTXTD) AND DTOS(CGUD_FEMIS)>=DTOS(DATE()-" + wdiasatras.ToString() + ")";
+            sql = "SELECT cgud_gudis,cgud_tndcl,cgud_canal,cgud_caden,cgud_almac,cgud_femis FROM SCCCGUD WHERE EMPTY(CGUD_FTXTD) AND CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " ORDER BY cgud_gudis ";
             dat_presccabRetail = Conexion.Obt_dbf(sql);
 
-            sql = "SELECT dgud_gudis,dgud_artic,dgud_calid,dgud_costo,dgud_codpp,dgud_cpack,dgud_touni,dgud_med00,dgud_med01,dgud_med02,dgud_med03,dgud_med04,dgud_med05,dgud_med06,dgud_med07,dgud_med08,dgud_med09,dgud_med10,dgud_med11 FROM SCCCGUD INNER JOIN SCDDGUD ON CGUD_GUDIS=DGUD_GUDIS WHERE EMPTY(CGUD_FTXTD) AND DTOS(CGUD_FEMIS)>=DTOS(DATE()-" + wdiasatras.ToString() + ")";
+            sql = "SELECT dgud_gudis,dgud_artic,dgud_calid,dgud_costo,dgud_codpp,dgud_cpack,dgud_touni,dgud_med00,dgud_med01,dgud_med02,dgud_med03,dgud_med04,dgud_med05,dgud_med06,dgud_med07,dgud_med08,dgud_med09,dgud_med10,dgud_med11 FROM SCCCGUD INNER JOIN SCDDGUD ON CGUD_GUDIS=DGUD_GUDIS WHERE EMPTY(CGUD_FTXTD) AND CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " ORDER BY cgud_gudis ";
             dat_prescdetRetail = Conexion.Obt_dbf(sql);
 
-            sql = "SELECT oc_nord,oc_client,oc_canal,oc_secci,oc_almac,oc_fecha,oc_ccli,oc_caden,oc_tipref,oc_docref FROM vmaoc WHERE EMPTY(oc_ftx) and oc_fecha>=date()-" + wdiasatras.ToString();
+            sql = "SELECT oc_nord,oc_client,oc_canal,oc_secci,oc_almac,oc_fecha,oc_ccli,oc_caden,oc_tipref,oc_docref FROM vmaoc WHERE EMPTY(oc_ftx) and oc_fecha>=date()-" + wdiasatras.ToString() + " ORDER BY oc_nord ";
             dat_presccabNoRetail = Conexion.Obt_dbf(sql);
 
-            sql = "SELECT od_nord,od_cart,od_cali,od_cpack,od_costo,od_qo00,od_qo01,od_qo02,od_qo03,od_qo04,od_qo05,od_qo06,od_qo07,od_qo08,od_qo09,od_qo10,od_qo11 FROM vmaoc INNER JOIN vmaod ON oc_nord=od_nord WHERE EMPTY(oc_ftx) and oc_fecha>=date()-" + wdiasatras.ToString();
+            sql = "SELECT od_nord,od_cart,od_cali,od_cpack,od_costo,od_qo00,od_qo01,od_qo02,od_qo03,od_qo04,od_qo05,od_qo06,od_qo07,od_qo08,od_qo09,od_qo10,od_qo11 FROM vmaoc INNER JOIN vmaod ON oc_nord=od_nord WHERE EMPTY(oc_ftx) and oc_fecha>=date()-" + wdiasatras.ToString() + " ORDER BY oc_nord ";
             dat_prescdetNoRetail = Conexion.Obt_dbf(sql);
 
             if ((dat_presccabRetail != null && dat_presccabRetail.Rows.Count > 0) || (dat_presccabNoRetail != null && dat_presccabNoRetail.Rows.Count > 0))
