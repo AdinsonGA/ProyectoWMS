@@ -9,6 +9,8 @@ using System.Text;
 using System.Threading.Tasks;
 using WinSCP;
 using CapaDatos;
+using System.Data.OleDb;
+//using System.Data.SqlTypes;
 
 namespace CapaInterface
 {
@@ -28,7 +30,7 @@ namespace CapaInterface
         string wcodalm = DatosGenerales.codalm;
         string wcodcia = DatosGenerales.codcia;
         string waction = "CREATE";
-        int wdiasatras = 25;
+        int wdiasatras = 30;
 
         //************** Datatable global para guardar las prescripciones obtenidas
         DataTable dat_presccabRetail = null;
@@ -36,9 +38,11 @@ namespace CapaInterface
         DataTable dat_presccabNoRetail = null;
         DataTable dat_prescdetNoRetail = null;
 
-        //************** File de texto
-        string fileTXTc = Path.Combine(DatosGenerales.rutaMain, "ORH.TXT");
-        string fileTXTd = Path.Combine(DatosGenerales.rutaMain, "ORD.TXT");
+        //************** Files de texto
+        //string nomfiltxt1 = $"ORH{DateTime.Now:yyyyMMdd}_{DateTime.Now:hhmmss}.TXT";
+        //string nomfiltxt2 = $"ORD{DateTime.Now:yyyyMMdd}_{DateTime.Now:hhmmss}.TXT";
+        string fileTXTc = "";
+        string fileTXTd = "";
 
         public void Genera_Interface_Prescripcion()
         {
@@ -62,6 +66,7 @@ namespace CapaInterface
                 //    //Cierro conexion
                 //    return;
                 //}
+
 
                 LogHandle.Graba_Log("******************** INICIO PROCESO");
 
@@ -112,41 +117,128 @@ namespace CapaInterface
         private bool Actualiza_Flag_Prescrip()
         {
 
+            bool exito1 = false;
+            bool exito2 = false;
+
+            exito1 = Actualiza_Flag("500");
+            exito2 = Actualiza_Flag("600");
+
+            return (exito1 || exito2);
+
+        }
+
+
+        private bool Actualiza_Flag(string retail_noretail)
+        {
+
             bool exito = false;
+            string cade = "";
+            var listaCade = new List<string>();
 
-            // RETAIL
-            using (System.Data.OleDb.OleDbConnection dbConn = new System.Data.OleDb.OleDbConnection(Conexion.Conn1))
+            DataTable dtaux = null;
+
+            if (retail_noretail == "500")
+            { dtaux = dat_presccabRetail; }
+            else
+            { dtaux = dat_presccabNoRetail; }
+
+            // OJO FALTA EVALUAR new System.Data.OleDb.OleDbCommand("set enginebehavior 80", dbConn).ExecuteNonQuery();
+
+            if (dtaux != null && dtaux.Rows.Count > 0)
             {
-                dbConn.Open();
 
-                foreach (DataRow fila in dat_presccabRetail.Rows)
+                foreach (DataRow fila in dtaux.Rows)
                 {
+                    if (retail_noretail == "500")
+                    {
+                        cade += "'" + Convert.ToString(fila["cgud_gudis"]).Trim() + "',";
+                    }
+                    else
+                    {
+                        cade += "'" + Convert.ToString(fila["oc_nord"]).Trim() + "',";
+                    }
+
+                    // DIVIDIMOS LA CADENA PQ SALE ERROR EN EL VFP (STATEMENT TOO LONG)
+                    if (cade.Length > 900)
+                    {
+                        cade = cade.TrimEnd(',');
+                        listaCade.Add(cade);
+                        cade = "";
+                    }
+                }
+                
+                cade = cade.TrimEnd(',');
+                listaCade.Add(cade);      
+
+
+                // RETAIL
+                using (OleDbConnection dbConn = new OleDbConnection(Conexion.Conn1))
+                {
+                    dbConn.Open();
+
+                    //using (OleDbCommand cmd = dbConn.CreateCommand())
+                    //{
+                    //    cmd.CommandText = "=SYS(3055, 440)";
+                    //    cmd.ExecuteNonQuery();
+                    //}
+                    //new System.Data.OleDb.OleDbCommand("SYS(3055, 2040)", dbConn).ExecuteNonQuery();
+
+                    //cmd.CommandText = "SYS(3055, 2040)";
+                    //cmd.ExecuteNonQuery();
+
                     //string valor = fila["Prescrip"].ToString();
                     //string sql_upd = "UPDATE FVPRESP SET PRE_RECNO=1 WHERE PRE_TIEND='" + fila["Pre_tiend"] + "' AND PRE_ARTIC='" + fila["Pre_artic"] + "' AND PRE_CALID='" + fila["Pre_calid"] + "' AND PRE_ARTIC='2811304' AND PRE_TIEND='50522'";
-                    string sql_upd = "UPDATE SCCCGUD SET CGUD_FTXTD='X' WHERE cgud_gudis='" + fila["cgud_gudis"] + "'";
-                    System.Data.OleDb.OleDbCommand com_upd = new System.Data.OleDb.OleDbCommand(sql_upd, dbConn);
-                    com_upd.ExecuteNonQuery();
-                    LogHandle.Graba_Log("UPDATE SCCCGUD");
+
+                    string sql_upd = "";
+
+                    foreach (var caden in listaCade)
+                    {
+                        if (retail_noretail == "500")
+                        {
+                            sql_upd = "UPDATE SCCCGUD SET CGUD_FTXTD='X' WHERE cgud_gudis IN (" + caden + ")";
+                        }
+                        else
+                        {
+                            sql_upd = "UPDATE vmaoc SET oc_ftx='X' WHERE oc_nord IN (" + caden + ")";
+                        }
+                        System.Data.OleDb.OleDbCommand com_upd = new System.Data.OleDb.OleDbCommand(sql_upd, dbConn);
+                        com_upd.ExecuteNonQuery();
+                        int count = caden.Count(f => f == ',');
+                        LogHandle.Graba_Log("UPDATE " + retail_noretail + " Docum: " + Convert.ToString(count+1));
+                    }
 
                 }
+
             }
 
-            // NO RETAIL
-            using (System.Data.OleDb.OleDbConnection dbConn = new System.Data.OleDb.OleDbConnection(Conexion.Conn2))
-            {
-                dbConn.Open();
+            //// NO RETAIL
 
-                foreach (DataRow fila in dat_presccabNoRetail.Rows)
-                {
-                    //string valor = fila["Prescrip"].ToString();
-                    //string sql_upd = "UPDATE FVPRESP SET PRE_RECNO=1 WHERE PRE_TIEND='" + fila["Pre_tiend"] + "' AND PRE_ARTIC='" + fila["Pre_artic"] + "' AND PRE_CALID='" + fila["Pre_calid"] + "' AND PRE_ARTIC='2811304' AND PRE_TIEND='50522'";
-                    string sql_upd = "UPDATE vmaoc SET oc_ftx='X' WHERE oc_nord='" + fila["oc_nord"] + "'";
-                    System.Data.OleDb.OleDbCommand com_upd = new System.Data.OleDb.OleDbCommand(sql_upd, dbConn);
-                    com_upd.ExecuteNonQuery();
-                    LogHandle.Graba_Log("UPDATE vmaoc");
+            //if (dat_presccabNoRetail != null && dat_presccabNoRetail.Rows.Count > 0)
+            //{
+            //    cade = "";
 
-                }
-            }
+            //    foreach (DataRow fila in dat_presccabNoRetail.Rows)
+            //    {
+            //        //cade = cade + fila["oc_nord"].ToString().Trim() + ",";
+            //        cade += "'" + Convert.ToString(fila["oc_nord"]).Trim() + "',";
+            //    }
+
+            //    cade = cade.TrimEnd(',');
+            //    //cade = cade.Substring(0, cade.Length - 1);
+
+            //    using (System.Data.OleDb.OleDbConnection dbConn = new System.Data.OleDb.OleDbConnection(Conexion.Conn2))
+            //    {
+            //        dbConn.Open();
+
+            //        //string valor = fila["Prescrip"].ToString();
+            //        //string sql_upd = "UPDATE FVPRESP SET PRE_RECNO=1 WHERE PRE_TIEND='" + fila["Pre_tiend"] + "' AND PRE_ARTIC='" + fila["Pre_artic"] + "' AND PRE_CALID='" + fila["Pre_calid"] + "' AND PRE_ARTIC='2811304' AND PRE_TIEND='50522'";
+            //        string sql_upd = "UPDATE vmaoc SET oc_ftx='X' WHERE oc_nord IN (" + cade + ")";
+            //        System.Data.OleDb.OleDbCommand com_upd = new System.Data.OleDb.OleDbCommand(sql_upd, dbConn);
+            //        com_upd.ExecuteNonQuery();
+            //        LogHandle.Graba_Log("UPDATE vmaoc");
+
+            //    }
+            //}
 
             exito = true;
             return exito;
@@ -190,8 +282,27 @@ namespace CapaInterface
             bool exito1 = false;
             bool exito2 = false;
 
-            if (File.Exists(fileTXTc)) File.Delete(fileTXTc);
-            if (File.Exists(fileTXTd)) File.Delete(fileTXTd);
+            string fechor = DateTime.Now.ToString("yyyyMMddHHmmss") + ".TXT";
+
+            fileTXTc = Path.Combine(DatosGenerales.rutaMain, "ORH_"+fechor);
+            fileTXTd = Path.Combine(DatosGenerales.rutaMain, "ORD_"+fechor);
+
+            // Eliminar archivos ORH, ORD.TXT
+            try
+            {
+                var dir = new DirectoryInfo(DatosGenerales.rutaMain);
+                foreach (var file in dir.EnumerateFiles("OR*.TXT"))
+                {
+                    file.Delete();
+                }
+            }
+            catch
+            {
+                // omitido
+            }
+
+            //if (File.Exists(fileTXTc)) { File.Delete(fileTXTc); }
+            //if (File.Exists(fileTXTd)) { File.Delete(fileTXTd); }
 
             exito1 = Genera_FileTXT_Retail();
             exito2 = Genera_FileTXT_NoRetail();
@@ -555,20 +666,22 @@ namespace CapaInterface
 
             string sql = "";
 
-            sql = "SELECT cgud_gudis,cgud_tndcl,cgud_canal,cgud_caden,cgud_almac,cgud_femis FROM SCCCGUD WHERE EMPTY(CGUD_FTXTD) AND CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " ORDER BY cgud_gudis ";
+            sql = "SELECT cgud_gudis,cgud_tndcl,cgud_canal,cgud_caden,cgud_almac,cgud_femis FROM SCCCGUD WHERE CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " AND EMPTY(CGUD_FTXTD) ORDER BY cgud_gudis ";
             dat_presccabRetail = Conexion.Obt_dbf(sql);
 
-            sql = "SELECT dgud_gudis,dgud_artic,dgud_calid,dgud_costo,dgud_codpp,dgud_cpack,dgud_touni,dgud_med00,dgud_med01,dgud_med02,dgud_med03,dgud_med04,dgud_med05,dgud_med06,dgud_med07,dgud_med08,dgud_med09,dgud_med10,dgud_med11 FROM SCCCGUD INNER JOIN SCDDGUD ON CGUD_GUDIS=DGUD_GUDIS WHERE EMPTY(CGUD_FTXTD) AND CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " ORDER BY cgud_gudis ";
+            sql = "SELECT dgud_gudis,dgud_artic,dgud_calid,dgud_costo,dgud_codpp,dgud_cpack,dgud_touni,dgud_med00,dgud_med01,dgud_med02,dgud_med03,dgud_med04,dgud_med05,dgud_med06,dgud_med07,dgud_med08,dgud_med09,dgud_med10,dgud_med11 FROM SCCCGUD INNER JOIN SCDDGUD ON CGUD_GUDIS=DGUD_GUDIS WHERE CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " AND EMPTY(CGUD_FTXTD) ORDER BY cgud_gudis ";
             dat_prescdetRetail = Conexion.Obt_dbf(sql);
 
-            sql = "SELECT oc_nord,oc_client,oc_canal,oc_secci,oc_almac,oc_fecha,oc_ccli,oc_caden,oc_tipref,oc_docref FROM vmaoc WHERE EMPTY(oc_ftx) and oc_fecha>=date()-" + wdiasatras.ToString() + " ORDER BY oc_nord ";
+            sql = "SELECT oc_nord,oc_client,oc_canal,oc_secci,oc_almac,oc_fecha,oc_ccli,oc_caden,oc_tipref,oc_docref FROM vmaoc WHERE oc_fecha>=date()-" + wdiasatras.ToString() + " AND EMPTY(oc_ftx) ORDER BY oc_nord ";
             dat_presccabNoRetail = Conexion.Obt_dbf(sql);
 
-            sql = "SELECT od_nord,od_cart,od_cali,od_cpack,od_costo,od_qo00,od_qo01,od_qo02,od_qo03,od_qo04,od_qo05,od_qo06,od_qo07,od_qo08,od_qo09,od_qo10,od_qo11 FROM vmaoc INNER JOIN vmaod ON oc_nord=od_nord WHERE EMPTY(oc_ftx) and oc_fecha>=date()-" + wdiasatras.ToString() + " ORDER BY oc_nord ";
+            sql = "SELECT od_nord,od_cart,od_cali,od_cpack,od_costo,od_qo00,od_qo01,od_qo02,od_qo03,od_qo04,od_qo05,od_qo06,od_qo07,od_qo08,od_qo09,od_qo10,od_qo11 FROM vmaoc INNER JOIN vmaod ON oc_nord=od_nord WHERE oc_fecha>=date()-" + wdiasatras.ToString() + " AND EMPTY(oc_ftx) ORDER BY oc_nord ";
             dat_prescdetNoRetail = Conexion.Obt_dbf(sql);
 
             if ((dat_presccabRetail != null && dat_presccabRetail.Rows.Count > 0) || (dat_presccabNoRetail != null && dat_presccabNoRetail.Rows.Count > 0))
             { exito = true; }
+
+            LogHandle.Graba_Log("CONSULTA DATA OK"); // OJO POR MIENTRAS
 
             return exito;
 

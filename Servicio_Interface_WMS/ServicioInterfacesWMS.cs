@@ -10,6 +10,7 @@ using System.ServiceProcess;
 using System.Threading.Tasks;
 using System.Timers;
 using CapaInterface;
+using CapaDatos;
 
 //using WinSCP;
 //using System.Data.SqlClient;
@@ -57,6 +58,8 @@ namespace CapaServicio
 
         protected override void OnStart(string[] args)
         {
+            Conexion.Mapea_red();
+
             tmservicio.Start();
         }
 

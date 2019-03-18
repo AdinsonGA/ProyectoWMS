@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data;
+using System.Data.OleDb;
 using System.Linq;
 using System.Text;
 
@@ -21,18 +22,31 @@ namespace CapaDatos
         public static string Conn1 = ConfigurationManager.ConnectionStrings["Dbf1"].ConnectionString;
         public static string Conn2 = ConfigurationManager.ConnectionStrings["Dbf2"].ConnectionString;
 
-        
+
+        public static bool Mapea_red()
+        {
+            NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf1"], "cquinto", "Spiderman100*");
+            return true;
+        }
+
         public static DataTable Obt_dbf(string sql)
         {
 
             DataTable dt = null;
 
-            using (System.Data.OleDb.OleDbConnection dbConn = new System.Data.OleDb.OleDbConnection(Conn1))
+            using (OleDbConnection dbConn = new OleDbConnection(Conn1))
             {
                 dbConn.Open();
 
                 try
                 {
+                    // FALTA EVALUAR new System.Data.OleDb.OleDbCommand("set enginebehavior 80", dbConn).ExecuteNonQuery();
+
+                    using (OleDbCommand cmd = dbConn.CreateCommand())
+                    {
+                        cmd.CommandText = "set enginebehavior 80";
+                        cmd.ExecuteNonQuery();
+                    }
 
                     //-- Obtenemos datos del DBF
                     System.Data.OleDb.OleDbCommand com = new System.Data.OleDb.OleDbCommand(sql, dbConn);
