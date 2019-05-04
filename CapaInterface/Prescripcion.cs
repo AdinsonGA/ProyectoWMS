@@ -10,33 +10,35 @@ using System.Threading.Tasks;
 using WinSCP;
 using CapaDatos;
 using System.Data.OleDb;
+using System.Text.RegularExpressions;
 //using System.Data.SqlTypes;
 
 namespace CapaInterface
 {
 
-    public class Resultado
-    {
-        public bool Exito { get; set; }
-        public string MensajeError { get; set; }
-        public DataSet DatosDevueltos { get; set; }
-    }
+    //public class Resultado
+    //{
+    //    public bool Exito { get; set; }
+    //    public string MensajeError { get; set; }
+    //    public DataSet DatosDevueltos { get; set; }
+    //}
 
 
     public class Prescripcion
     {
 
-        //************** Envio de Prescripciones       
-        string wcodalm = DatosGenerales.codalm;
+        //************** Variables       
+        //string wcodalm = DatosGenerales.codalm;
         string wcodcia = DatosGenerales.codcia;
         string waction = "CREATE";
-        int wdiasatras = 30;
+        string winterface = "PRESC";
+        int wdiasatras = 57;
 
-        //************** Datatable global para guardar las prescripciones obtenidas
-        DataTable dat_presccabRetail = null;
-        DataTable dat_prescdetRetail = null;
-        DataTable dat_presccabNoRetail = null;
-        DataTable dat_prescdetNoRetail = null;
+        //************** Datatables globales para guardar las prescripciones obtenidas
+        DataTable dt_cab_retail = null;
+        DataTable dt_det_retail = null;
+        DataTable dt_cab_noretail = null;
+        DataTable dt_det_noretail = null;
 
         //************** Files de texto
         //string nomfiltxt1 = $"ORH{DateTime.Now:yyyyMMdd}_{DateTime.Now:hhmmss}.TXT";
@@ -47,6 +49,7 @@ namespace CapaInterface
         public void Genera_Interface_Prescripcion()
         {
             bool exito = false;
+            string wcd = "";
 
             try
             {
@@ -68,43 +71,53 @@ namespace CapaInterface
                 //}
 
 
-                LogHandle.Graba_Log("******************** INICIO PROCESO");
+                LogUtil.Graba_Log(winterface, "******* INICIO PROCESO *******");
+
 
                 if (Obtiene_Prescrip())
                 {
-                    if (Genera_FileTXT())
+                    for (int xi = 1; xi <= 2; xi++)
                     {
-                        if (Envia_FTP())
+                        if (xi == 1)
+                            wcd = "50001";
+                        else
+                            wcd = "50003";
+
+                        if (Genera_FileTXT(wcd))
                         {
-                            if (Actualiza_Flag_Prescrip())
+                            if (Envia_FTP(wcd))
                             {
-                                exito = true;
+                                if (Actualiza_Flag_Prescrip())
+                                {
+                                    exito = true;
+                                }
+
+                                Archiva_TXT();
                             }
                         }
                     }
 
                 }
 
-                Archiva_TXT();
 
                 if (exito)
                 {
-                    LogHandle.Graba_Log("SE PROCESO OK"); // OJO POR MIENTRAS
+                    LogUtil.Graba_Log(winterface, "SE PROCESO OK"); // OJO POR MIENTRAS
                 }
                 else
                 {
-                    LogHandle.Graba_Log("NO PROCESO NADA"); // OJO POR MIENTRAS
+                    LogUtil.Graba_Log(winterface, "NO PROCESO NADA"); // OJO POR MIENTRAS
                 }
 
 
             }
             catch (Exception ex)
             {
-                LogHandle.Graba_Log("ERROR: " + ex.ToString());
+                LogUtil.Graba_Log(winterface, "ERROR: " + ex.ToString());
             }
             finally
             {
-                LogHandle.Graba_Log("******************** FIN PROCESO");
+                LogUtil.Graba_Log(winterface, "******* FIN PROCESO *******");
             }
         }
         //****************************************************************************
@@ -120,8 +133,15 @@ namespace CapaInterface
             bool exito1 = false;
             bool exito2 = false;
 
-            exito1 = Actualiza_Flag("500");
-            exito2 = Actualiza_Flag("600");
+            try
+            {
+                exito1 = Actualiza_Flag(DatosGenerales.CodRetail);
+                exito2 = Actualiza_Flag(DatosGenerales.CodNoRetail);
+            }
+            catch (Exception ex)
+            {
+                LogUtil.Graba_Log(winterface, "ERROR: " + ex.ToString());
+            }
 
             return (exito1 || exito2);
 
@@ -137,10 +157,10 @@ namespace CapaInterface
 
             DataTable dtaux = null;
 
-            if (retail_noretail == "500")
-            { dtaux = dat_presccabRetail; }
+            if (retail_noretail == "5")
+            { dtaux = dt_cab_retail; }
             else
-            { dtaux = dat_presccabNoRetail; }
+            { dtaux = dt_cab_noretail; }
 
             // OJO FALTA EVALUAR new System.Data.OleDb.OleDbCommand("set enginebehavior 80", dbConn).ExecuteNonQuery();
 
@@ -149,7 +169,7 @@ namespace CapaInterface
 
                 foreach (DataRow fila in dtaux.Rows)
                 {
-                    if (retail_noretail == "500")
+                    if (retail_noretail == "5")
                     {
                         cade += "'" + Convert.ToString(fila["cgud_gudis"]).Trim() + "',";
                     }
@@ -168,11 +188,16 @@ namespace CapaInterface
                 }
                 
                 cade = cade.TrimEnd(',');
-                listaCade.Add(cade);      
+                listaCade.Add(cade);
 
+                string conex = "";
 
-                // RETAIL
-                using (OleDbConnection dbConn = new OleDbConnection(Conexion.Conn1))
+                if (retail_noretail == "5")
+                { conex = Conexion.Conn2; }
+                else
+                { conex = Conexion.Conn1; }
+
+                using (OleDbConnection dbConn = new OleDbConnection(conex))
                 {
                     dbConn.Open();
 
@@ -193,18 +218,18 @@ namespace CapaInterface
 
                     foreach (var caden in listaCade)
                     {
-                        if (retail_noretail == "500")
+                        if (retail_noretail == "5")
                         {
-                            sql_upd = "UPDATE SCCCGUD SET CGUD_FTXTD='X' WHERE cgud_gudis IN (" + caden + ")";
+                            sql_upd = "UPDATE SCCCGUD SET FLAG_WMS='X' WHERE cgud_gudis IN (" + caden + ")";
                         }
                         else
                         {
-                            sql_upd = "UPDATE vmaoc SET oc_ftx='X' WHERE oc_nord IN (" + caden + ")";
+                            sql_upd = "UPDATE vmaoc SET FLAG_WMS='X' WHERE oc_nord IN (" + caden + ")";
                         }
                         System.Data.OleDb.OleDbCommand com_upd = new System.Data.OleDb.OleDbCommand(sql_upd, dbConn);
                         com_upd.ExecuteNonQuery();
                         int count = caden.Count(f => f == ',');
-                        LogHandle.Graba_Log("UPDATE " + retail_noretail + " Docum: " + Convert.ToString(count+1));
+                        LogUtil.Graba_Log(winterface, "UPDATE " + retail_noretail + " Docum: " + Convert.ToString(count+1));
                     }
 
                 }
@@ -213,11 +238,11 @@ namespace CapaInterface
 
             //// NO RETAIL
 
-            //if (dat_presccabNoRetail != null && dat_presccabNoRetail.Rows.Count > 0)
+            //if (dt_cab_noretail != null && dt_cab_noretail.Rows.Count > 0)
             //{
             //    cade = "";
 
-            //    foreach (DataRow fila in dat_presccabNoRetail.Rows)
+            //    foreach (DataRow fila in dt_cab_noretail.Rows)
             //    {
             //        //cade = cade + fila["oc_nord"].ToString().Trim() + ",";
             //        cade += "'" + Convert.ToString(fila["oc_nord"]).Trim() + "',";
@@ -250,24 +275,18 @@ namespace CapaInterface
         /************** Envia_FTP
         * Metodo que envia el archivo de texto al FTP
         ***************/
-        private bool Envia_FTP()
+        private bool Envia_FTP(string wcd)
         {
             bool exito1 = false;
-            bool exito2 = false;
+            bool exito2 = false;          
 
-            //string NombreArchivo = Path.GetFileName(fileTXTc);
-            //string logftp = DatosGenerales.rutaMain + "logftp.txt";
+            exito1 = FTPUtil.Send_FTP_WMS(fileTXTc, fileTXTc, wcd);
+            exito2 = FTPUtil.Send_FTP_WMS(fileTXTd, fileTXTd, wcd);                     
 
-            exito1 = Send_FTP_WMS(fileTXTc, fileTXTc);
-            exito2 = Send_FTP_WMS(fileTXTd, fileTXTd);
-
-
-            //using (StreamWriter str = new StreamWriter(logftp, false, System.Text.Encoding.Default))
-            //{
-
-            //}
-
-            if (exito1 && exito2) LogHandle.Graba_Log("ENVIA FTP OK "); else LogHandle.Graba_Log("ENVIA FTP ERROR ");
+            if (exito1 && exito2)
+            { LogUtil.Graba_Log(winterface, "ENVIA FTP OK "); }
+            else
+            { LogUtil.Graba_Log(winterface, "ENVIA FTP ERROR "); }
 
             return (exito1 && exito2);
         }
@@ -276,7 +295,7 @@ namespace CapaInterface
         /************** Genera_FileTXT
         * Metodo que genera la interface como archivo de texto para el WMS
         ***************/
-        private bool Genera_FileTXT()
+        private bool Genera_FileTXT(string wcd)
         {
 
             bool exito1 = false;
@@ -304,27 +323,35 @@ namespace CapaInterface
             //if (File.Exists(fileTXTc)) { File.Delete(fileTXTc); }
             //if (File.Exists(fileTXTd)) { File.Delete(fileTXTd); }
 
-            exito1 = Genera_FileTXT_Retail();
-            exito2 = Genera_FileTXT_NoRetail();
+            exito1 = Genera_FileTXT_Retail(wcd);
+            exito2 = Genera_FileTXT_NoRetail(wcd);
+
+            //dt_cab_retail = dt_det_retail = dt_cab_noretail = dt_det_noretail = null;
 
             return (exito1 || exito2);
         }
 
 
-        private bool Genera_FileTXT_Retail()
+        private bool Genera_FileTXT_Retail(string wcd)
         {
 
-            if (dat_presccabRetail == null || dat_presccabRetail.Rows.Count == 0)
+            if (dt_cab_retail == null || dt_cab_retail.Rows.Count == 0)
             { return false; }
           
             string delimited = "|";
             bool exito = false;
+            string zcd = "";
             var str = new StringBuilder();
 
-            foreach (DataRow datarow in dat_presccabRetail.Rows)
+            foreach (DataRow datarow in dt_cab_retail.Rows)
             {
+
+                zcd = DatosGenerales.Obt_CDxAlm(datarow["cgud_almac"].ToString());
+                if (zcd != wcd)
+                    continue;
+
                 str.Append(datarow["cgud_gudis"].ToString() + delimited);        // Numero de orden de despacho
-                str.Append(wcodalm + delimited);                                  // Facility code
+                str.Append(zcd + delimited);  // Facility code
                 str.Append(wcodcia + delimited);                                  // Cod Cia
                 str.Append(datarow["cgud_gudis"].ToString() + delimited);        // Numero de orden de despacho
                 str.Append(datarow["cgud_canal"].ToString() + datarow["cgud_almac"].ToString() + delimited);  // Order Type ejemplo: 5K
@@ -379,10 +406,15 @@ namespace CapaInterface
 
             str = new StringBuilder();
 
-            grupo = dat_prescdetRetail.Rows[0]["dgud_gudis"].ToString();
+            grupo = dt_det_retail.Rows[0]["dgud_gudis"].ToString();
 
-            foreach (DataRow datarow in dat_prescdetRetail.Rows)
+            foreach (DataRow datarow in dt_det_retail.Rows)
             {
+
+                zcd = DatosGenerales.Obt_CDxAlm(datarow["cgud_almac"].ToString());
+                if (zcd != wcd)
+                    continue;
+
                 // Resetear correlativo cuando cambia de grupo
                 if (datarow["dgud_gudis"].ToString() != grupo)
                 {
@@ -394,7 +426,7 @@ namespace CapaInterface
                 for (int xi = 0; xi < 12; xi++)
                 {
 
-                    string pad = xi.ToString().PadLeft(2, cero);
+                    string pad = xi.ToString().Trim().PadLeft(2, cero);
                     var value = datarow["dgud_med" + pad];
                     if (value != DBNull.Value)
                     {
@@ -403,16 +435,17 @@ namespace CapaInterface
                         {
                             correlativo += 1;
 
-                            string pos = (xi + 1).ToString().PadLeft(2, cero);
+                            string pos = (xi + 1).ToString().Trim().PadLeft(2, cero);
 
                             // Evaluar si el articulo es prepack o solid
                             if (datarow["dgud_cpack"].ToString() == "00001")
-                            { keyitem = datarow["dgud_artic"].ToString() + datarow["dgud_calid"].ToString() + datarow["dgud_cpack"].ToString() + DatosGenerales.CodRetail; }
-                            else
                             { keyitem = datarow["dgud_artic"].ToString() + datarow["dgud_calid"].ToString() + pos + DatosGenerales.CodRetail; }
+                            else
+                            { keyitem = datarow["dgud_artic"].ToString() + datarow["dgud_calid"].ToString() + datarow["dgud_cpack"].ToString() + DatosGenerales.CodRetail; }
+                                                        
                             
                             str.Append(datarow["dgud_gudis"].ToString() + delimited);        // Numero de orden de despacho
-                            str.Append(wcodalm + delimited);                                  // Facility code
+                            str.Append(DatosGenerales.Obt_CDxAlm(datarow["cgud_almac"].ToString()) + delimited);  // Facility code
                             str.Append(wcodcia + delimited);                                  // Cod Cia
                             str.Append(datarow["dgud_gudis"].ToString() + delimited);        // Numero de orden de despacho
                             str.Append(correlativo.ToString() + delimited);                  // Numero correlativo
@@ -427,6 +460,10 @@ namespace CapaInterface
                             str.Append("" + delimited);
                             str.Append("" + delimited);
                             str.Append(datarow["dgud_costo"].ToString() + delimited);        // Costo
+                            str.Append("0" + delimited);                                     // Sales
+                            for (int i = 1; i <= 16; i++)
+                            { str.Append("" + delimited); };
+                            str.Append(DateTime.Now.ToString("yyyyMMdd") + delimited);       // voucher_exp_date
                             str.Append("\r\n");
                         }
                     }
@@ -443,22 +480,27 @@ namespace CapaInterface
         }
 
 
-        private bool Genera_FileTXT_NoRetail()
+        private bool Genera_FileTXT_NoRetail(string wcd)
         {
 
-            if (dat_presccabNoRetail == null || dat_presccabNoRetail.Rows.Count == 0)
+            if (dt_cab_noretail == null || dt_cab_noretail.Rows.Count == 0)
             { return false; }
 
             string delimited = "|";
             bool exito = false;
+            string zcd = "";
             var str = new StringBuilder();
 
-            foreach (DataRow datarow in dat_presccabNoRetail.Rows)
+            foreach (DataRow datarow in dt_cab_noretail.Rows)
             {
+                zcd = DatosGenerales.Obt_CDxAlm(datarow["oc_almac"].ToString());
+                if (zcd != wcd)
+                    continue;
+
                 str.Append(datarow["oc_nord"].ToString() + delimited);           // Numero de orden de despacho
-                str.Append(wcodalm + delimited);                                  // Facility code
-                str.Append(wcodcia + delimited);                                  // Cod Cia
-                str.Append(datarow["oc_nord"].ToString() + delimited);        // Numero de orden de despacho
+                str.Append(zcd + delimited);                                     // Facility code
+                str.Append(wcodcia + delimited);                                 // Cod Cia
+                str.Append(datarow["oc_nord"].ToString() + delimited);           // Numero de orden de despacho
                 str.Append(datarow["oc_canal"].ToString() + datarow["oc_almac"].ToString() + delimited);  // Order Type ejemplo: 5K
                 str.Append(Convert.ToDateTime(datarow["oc_fecha"]).ToString("yyyyMMdd") + delimited);        // Fecha emision
                 str.Append("" + delimited);                                      // exp_date
@@ -500,11 +542,7 @@ namespace CapaInterface
 
             }
 
-
-            using (StreamWriter filtxt = new StreamWriter(fileTXTc, true, System.Text.Encoding.Default))
-            {
-                filtxt.WriteLine(str.ToString());
-            }
+            File.AppendAllText(fileTXTc, str.ToString());     
 
 
             // DETALLE NORETAIL
@@ -515,10 +553,13 @@ namespace CapaInterface
 
             str = new StringBuilder();
 
-            grupo = dat_prescdetNoRetail.Rows[0]["od_nord"].ToString();
+            grupo = dt_det_noretail.Rows[0]["od_nord"].ToString();
 
-            foreach (DataRow datarow in dat_prescdetNoRetail.Rows)
+            foreach (DataRow datarow in dt_det_noretail.Rows)
             {
+                zcd = DatosGenerales.Obt_CDxAlm(datarow["oc_almac"].ToString());
+                if (zcd != wcd)
+                    continue;
 
                 // Resetear correlativo cuando cambia de grupo
                 if (datarow["od_nord"].ToString() != grupo)
@@ -530,7 +571,7 @@ namespace CapaInterface
                 for (int xi = 0; xi < 12; xi++)
                 {
 
-                    string pad = xi.ToString().PadLeft(2, cero);
+                    string pad = xi.ToString().Trim().PadLeft(2, cero);
                     var value = datarow["od_qo" + pad];
                     if (value != DBNull.Value)
                     {
@@ -539,16 +580,16 @@ namespace CapaInterface
                         {
                             correlativo += 1;
 
-                            string pos = (xi + 1).ToString().PadLeft(2, cero);
+                            string pos = (xi + 1).ToString().Trim().PadLeft(2, cero);
 
                             // Evaluar si el articulo es prepack o solid
-                            if (datarow["od_cpack"].ToString() == "00001")
-                                keyitem = datarow["od_cart"].ToString() + datarow["od_cali"].ToString() + datarow["od_cpack"].ToString() + DatosGenerales.CodNoRetail;
+                            if (datarow["od_cpack"].ToString() == "00001" || datarow["od_cpack"].ToString().Trim() == String.Empty)
+                            { keyitem = datarow["od_cart"].ToString() + datarow["od_cali"].ToString() + pos + DatosGenerales.CodNoRetail; }
                             else
-                                keyitem = datarow["od_cart"].ToString() + datarow["od_cali"].ToString() + pos + DatosGenerales.CodNoRetail;
+                            { keyitem = datarow["od_cart"].ToString() + datarow["od_cali"].ToString() + datarow["od_cpack"].ToString() + DatosGenerales.CodNoRetail; }                                                      
 
                             str.Append(datarow["od_nord"].ToString() + delimited);            // Numero de orden de despacho
-                            str.Append(wcodalm + delimited);                                  // Facility code
+                            str.Append(zcd + delimited);                                      // Facility code
                             str.Append(wcodcia + delimited);                                  // Cod Cia
                             str.Append(datarow["od_nord"].ToString() + delimited);            // Numero de orden de despacho
                             str.Append(correlativo.ToString() + delimited);                   // Numero correlativo
@@ -563,16 +604,22 @@ namespace CapaInterface
                             str.Append("" + delimited);
                             str.Append("" + delimited);
                             str.Append(datarow["od_costo"].ToString() + delimited);           // Costo
+                            str.Append("0" + delimited);                                      // Sales
+                            for (int i = 1; i <= 16; i++)
+                            { str.Append("" + delimited); };
+                            str.Append(DateTime.Now.ToString("yyyyMMdd") + delimited);        // voucher_exp_date
                             str.Append("\r\n");
                         }
                     }
                 }
             }
 
-            using (StreamWriter filtxt = new StreamWriter(fileTXTd, true, System.Text.Encoding.Default))
-            {
-                filtxt.WriteLine(str.ToString());
-            }
+            File.AppendAllText(fileTXTd, str.ToString());
+
+            //using (StreamWriter filtxt = new StreamWriter(fileTXTd, true, System.Text.Encoding.Default))
+            //{
+            //    filtxt.WriteLine(str.ToString());
+            //}
 
             exito = (File.Exists(fileTXTc) && File.Exists(fileTXTd));
             return exito;
@@ -582,106 +629,47 @@ namespace CapaInterface
 
         /************** Obtiene_Prescrip
         * Metodo que obtiene las prescripciones desde el Sis (dbf)
-        ***************/
-
-        private bool Obtiene_Prescrip2xxxxxxxxxxxx()
-        {
-
-            bool exito = false;
-            dat_presccabRetail = null;
-            dat_prescdetRetail = null;
-            dat_presccabNoRetail = null;
-            dat_prescdetNoRetail = null;
-
-            using (System.Data.OleDb.OleDbConnection dbConn = new System.Data.OleDb.OleDbConnection("hola"))
-            {
-                dbConn.Open();
-
-                try
-                {
-
-                    //-- Obtenemos prescripciones RETAIL Cabecera
-                    string sql_prescripc = "SELECT cgud_gudis,cgud_tndcl,cgud_canal,cgud_caden,cgud_almac,cgud_femis FROM SCCCGUD WHERE EMPTY(CGUD_FTXTD) AND DTOS(CGUD_FEMIS)>=DTOS(DATE()-8)";
-                    System.Data.OleDb.OleDbCommand com = new System.Data.OleDb.OleDbCommand(sql_prescripc, dbConn);
-                    System.Data.OleDb.OleDbDataAdapter ada = new System.Data.OleDb.OleDbDataAdapter(com);
-                    dat_presccabRetail = new DataTable();
-                    ada.Fill(dat_presccabRetail);
-
-
-                    //-- Obtenemos prescripciones RETAIL Detalle
-                    string sql_prescripd = "SELECT dgud_gudis,dgud_artic,dgud_calid,dgud_costo,dgud_codpp,dgud_cpack,dgud_touni,dgud_med00,dgud_med01,dgud_med02,dgud_med03,dgud_med04,dgud_med05,dgud_med06,dgud_med07,dgud_med08,dgud_med09,dgud_med10,dgud_med11 FROM SCCCGUD INNER JOIN SCDDGUD ON CGUD_GUDIS=DGUD_GUDIS WHERE EMPTY(CGUD_FTXTD) AND DTOS(CGUD_FEMIS)>=DTOS(DATE()-8)";
-                    System.Data.OleDb.OleDbCommand comd = new System.Data.OleDb.OleDbCommand(sql_prescripd, dbConn);
-                    System.Data.OleDb.OleDbDataAdapter adad = new System.Data.OleDb.OleDbDataAdapter(comd);
-                    dat_prescdetRetail = new DataTable();
-                    adad.Fill(dat_prescdetRetail);
-
-                }
-                catch
-                {
-                    // omitido
-                }
-
-
-                try
-                {
-
-                    //-- Obtenemos prescripciones NO RETAIL Cabecera
-                    string sql_prescripc = "SELECT oc_nord,oc_client,oc_secci,oc_almac,oc_fecha,oc_ccli,oc_caden,oc_tipref,oc_docref FROM vmaoc WHERE EMPTY(oc_ftx) and oc_fecha>=date()-7";
-                    System.Data.OleDb.OleDbCommand com = new System.Data.OleDb.OleDbCommand(sql_prescripc, dbConn);
-                    System.Data.OleDb.OleDbDataAdapter ada = new System.Data.OleDb.OleDbDataAdapter(com);
-                    dat_presccabNoRetail = new DataTable();
-                    ada.Fill(dat_presccabNoRetail);
-
-
-                    //-- Obtenemos prescripciones NO RETAIL Detalle
-                    string sql_prescripd = "SELECT od_nord,od_cart,od_cali,od_costo,od_qo00,od_qo01,od_qo02,od_qo03,od_qo04,od_qo05,od_qo06,od_qo07,od_qo08,od_qo09,od_qo10,od_qo11 FROM vmaoc INNER JOIN vmaod ON oc_nord=od_nord WHERE EMPTY(oc_ftx) and oc_fecha>=date()-7";
-                    System.Data.OleDb.OleDbCommand comd = new System.Data.OleDb.OleDbCommand(sql_prescripd, dbConn);
-                    System.Data.OleDb.OleDbDataAdapter adad = new System.Data.OleDb.OleDbDataAdapter(comd);
-                    dat_prescdetNoRetail = new DataTable();
-                    adad.Fill(dat_prescdetNoRetail);
-
-                }
-                catch
-                {
-                    // omitido
-                }
-
-                if ((dat_presccabRetail != null && dat_presccabRetail.Rows.Count > 0) || (dat_presccabNoRetail != null && dat_presccabNoRetail.Rows.Count > 0))
-                { exito = true; }
-
-            }
-
-            return exito;
-        }
-
-
+        *****************/
         private bool Obtiene_Prescrip()
         {
+
+            //LogHandle.Graba_Log(winterface, "ENTRANDO A CONSULTAR DATA"); // OJO POR MIENTRAS
+
             bool exito = false;
 
-            dat_presccabRetail = null;
-            dat_prescdetRetail = null;
-            dat_presccabNoRetail = null;
-            dat_prescdetNoRetail = null;
+            dt_cab_retail = null;
+            dt_det_retail = null;
+            dt_cab_noretail = null;
+            dt_det_noretail = null;
 
             string sql = "";
 
-            sql = "SELECT cgud_gudis,cgud_tndcl,cgud_canal,cgud_caden,cgud_almac,cgud_femis FROM SCCCGUD WHERE CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " AND EMPTY(CGUD_FTXTD) ORDER BY cgud_gudis ";
-            dat_presccabRetail = Conexion.Obt_dbf(sql);
+            // CABECERA
+            sql = "SELECT cgud_gudis,cgud_tndcl,cgud_canal,cgud_caden,cgud_almac,cgud_femis FROM SCCCGUD WHERE CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " AND EMPTY(FLAG_WMS) AND CGUD_EMPRE!='06' ORDER BY cgud_gudis ";
+            dt_cab_retail = Conexion.Obt_dbf(sql, DatosGenerales.CodRetail);
 
-            sql = "SELECT dgud_gudis,dgud_artic,dgud_calid,dgud_costo,dgud_codpp,dgud_cpack,dgud_touni,dgud_med00,dgud_med01,dgud_med02,dgud_med03,dgud_med04,dgud_med05,dgud_med06,dgud_med07,dgud_med08,dgud_med09,dgud_med10,dgud_med11 FROM SCCCGUD INNER JOIN SCDDGUD ON CGUD_GUDIS=DGUD_GUDIS WHERE CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " AND EMPTY(CGUD_FTXTD) ORDER BY cgud_gudis ";
-            dat_prescdetRetail = Conexion.Obt_dbf(sql);
+            // DETALLE
+            if (dt_cab_retail != null && dt_cab_retail.Rows.Count > 0)
+            {
+                sql = "SELECT cgud_almac,dgud_gudis,dgud_artic,dgud_calid,dgud_costo,dgud_codpp,dgud_cpack,dgud_touni,dgud_med00,dgud_med01,dgud_med02,dgud_med03,dgud_med04,dgud_med05,dgud_med06,dgud_med07,dgud_med08,dgud_med09,dgud_med10,dgud_med11 FROM SCCCGUD INNER JOIN SCDDGUD ON CGUD_GUDIS=DGUD_GUDIS WHERE CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " AND EMPTY(FLAG_WMS) AND CGUD_EMPRE!='06' ORDER BY cgud_gudis ";
+                dt_det_retail = Conexion.Obt_dbf(sql, DatosGenerales.CodRetail);
+            }
 
-            sql = "SELECT oc_nord,oc_client,oc_canal,oc_secci,oc_almac,oc_fecha,oc_ccli,oc_caden,oc_tipref,oc_docref FROM vmaoc WHERE oc_fecha>=date()-" + wdiasatras.ToString() + " AND EMPTY(oc_ftx) ORDER BY oc_nord ";
-            dat_presccabNoRetail = Conexion.Obt_dbf(sql);
+            // CABECERA
+            sql = "SELECT oc_nord,oc_client,oc_canal,oc_secci,oc_almac,oc_fecha,oc_ccli,oc_caden,oc_tipref,oc_docref FROM vmaoc WHERE oc_fecha>=date()-" + wdiasatras.ToString() + " AND EMPTY(FLAG_WMS) AND OC_EMPRE!='06' ORDER BY oc_nord ";
+            dt_cab_noretail = Conexion.Obt_dbf(sql, DatosGenerales.CodNoRetail);
 
-            sql = "SELECT od_nord,od_cart,od_cali,od_cpack,od_costo,od_qo00,od_qo01,od_qo02,od_qo03,od_qo04,od_qo05,od_qo06,od_qo07,od_qo08,od_qo09,od_qo10,od_qo11 FROM vmaoc INNER JOIN vmaod ON oc_nord=od_nord WHERE oc_fecha>=date()-" + wdiasatras.ToString() + " AND EMPTY(oc_ftx) ORDER BY oc_nord ";
-            dat_prescdetNoRetail = Conexion.Obt_dbf(sql);
+            // DETALLE
+            if (dt_cab_noretail != null && dt_cab_noretail.Rows.Count > 0)
+            {
+                sql = "SELECT oc_almac,od_nord,od_cart,od_cali,od_cpack,od_costo,od_qo00,od_qo01,od_qo02,od_qo03,od_qo04,od_qo05,od_qo06,od_qo07,od_qo08,od_qo09,od_qo10,od_qo11 FROM vmaoc INNER JOIN vmaod ON oc_nord=od_nord WHERE oc_fecha>=date()-" + wdiasatras.ToString() + " AND EMPTY(FLAG_WMS) AND OC_EMPRE!='06' ORDER BY oc_nord ";
+                dt_det_noretail = Conexion.Obt_dbf(sql, DatosGenerales.CodNoRetail);
+            }
 
-            if ((dat_presccabRetail != null && dat_presccabRetail.Rows.Count > 0) || (dat_presccabNoRetail != null && dat_presccabNoRetail.Rows.Count > 0))
+            if ((dt_cab_retail != null && dt_cab_retail.Rows.Count > 0) || (dt_cab_noretail != null && dt_cab_noretail.Rows.Count > 0))
             { exito = true; }
 
-            LogHandle.Graba_Log("CONSULTA DATA OK"); // OJO POR MIENTRAS
+            LogUtil.Graba_Log(winterface, "CONSULTA DATA OK"); // OJO POR MIENTRAS
 
             return exito;
 
@@ -720,73 +708,73 @@ namespace CapaInterface
             }
         }
 
-        private bool Send_FTP_WMS(string file_origen, string file_destino)
-        {
-            bool exito = false;
+        //private bool Send_FTP_WMS(string file_origen, string file_destino)
+        //{
+        //    bool exito = false;
 
-            try
-            {
-                // Setup session options
-                SessionOptions sessionOptions = new SessionOptions
-                {
-                    Protocol = Protocol.Sftp,
-                    HostName = DatosGenerales.UrlFtp, //"172.24.20.183"
-                    UserName = DatosGenerales.UserFtp, //"retailc"
-                    Password = DatosGenerales.PassFtp, //"1wiAwNRa"
-                    PortNumber = 22,
-                    GiveUpSecurityAndAcceptAnySshHostKey = true
-                };
+        //    try
+        //    {
+        //        // Setup session options
+        //        SessionOptions sessionOptions = new SessionOptions
+        //        {
+        //            Protocol = Protocol.Sftp,
+        //            HostName = DatosGenerales.UrlFtp, //"172.24.20.183"
+        //            UserName = DatosGenerales.UserFtp, //"retailc"
+        //            Password = DatosGenerales.PassFtp, //"1wiAwNRa"
+        //            PortNumber = 22,
+        //            GiveUpSecurityAndAcceptAnySshHostKey = true
+        //        };
 
-                using (Session session = new Session())
-                {
+        //        using (Session session = new Session())
+        //        {
 
-                    // Connect
-                    session.Open(sessionOptions);
-                    //str.WriteLine("**************** CONECTADO CON EXITO AL FTP " + DateTime.Now);
-                    //str.WriteLine("INICIO SUBIDA DE ACHIVO " + NombreArchivo + " AL SFTP " + DateTime.Now);
-                    //string nombreAchivoRuta = NombreArchivo + DateTime.Now.ToString("yyyyMMdd") + ".mnt";
-                    //string nombreArchivoCompleto = fileTXTc; // "\\\\200.1.1.40\\appl\\pos\\interfaces\\" + nombreAchivoRuta;
+        //            // Connect
+        //            session.Open(sessionOptions);
+        //            //str.WriteLine("**************** CONECTADO CON EXITO AL FTP " + DateTime.Now);
+        //            //str.WriteLine("INICIO SUBIDA DE ACHIVO " + NombreArchivo + " AL SFTP " + DateTime.Now);
+        //            //string nombreAchivoRuta = NombreArchivo + DateTime.Now.ToString("yyyyMMdd") + ".mnt";
+        //            //string nombreArchivoCompleto = fileTXTc; // "\\\\200.1.1.40\\appl\\pos\\interfaces\\" + nombreAchivoRuta;
 
-                    // Upload files
-                    TransferOptions transferOptions = new TransferOptions();
-                    transferOptions.FilePermissions = null; // This is default
-                    transferOptions.PreserveTimestamp = false;
-                    transferOptions.TransferMode = TransferMode.Binary;
-                    TransferOperationResult transferResult;
+        //            // Upload files
+        //            TransferOptions transferOptions = new TransferOptions();
+        //            transferOptions.FilePermissions = null; // This is default
+        //            transferOptions.PreserveTimestamp = false;
+        //            transferOptions.TransferMode = TransferMode.Binary;
+        //            TransferOperationResult transferResult;
 
-                    //transferResult = session.PutFiles(fileTXTc, "/data/02_PE/input/" + Path.GetFileName(fileTXTc), false, transferOptions);
+        //            //transferResult = session.PutFiles(fileTXTc, "/data/02_PE/input/" + Path.GetFileName(fileTXTc), false, transferOptions);
 
-                    transferResult = session.PutFiles(file_origen, "/data/02_PE/input/" + Path.GetFileName(file_destino), false, transferOptions);
+        //            transferResult = session.PutFiles(file_origen, "/data/730/input/" + Path.GetFileName(file_destino), false, transferOptions);                                        
 
-                    // Throw on any error
-                    transferResult.Check();
+        //            // Throw on any error
+        //            transferResult.Check();
 
-                    //if (transferResult.IsSuccess == true) exito = true;
-                    exito = transferResult.IsSuccess;
+        //            //if (transferResult.IsSuccess == true) exito = true;
+        //            exito = transferResult.IsSuccess;
 
-                    // Print results
-                    //if (exito)
-                    //{
-                    //    foreach (TransferEventArgs transfer in transferResult.Transfers)
-                    //    {
-                    //        //varFinal = nombreAchivoRuta + "°" + subido + "°" + "CORRECTAMENTE SUBIDO" + transfer.FileName + " " + DateTime.Now + "°" + "1";
-                    //        str.WriteLine("ARCHIVO FUE CARGADO OK: " + transfer.FileName + " " + DateTime.Now);
-                    //        //exito = true;
-                    //    }
-                    //}
-                }
-            }
+        //            // Print results
+        //            //if (exito)
+        //            //{
+        //            //    foreach (TransferEventArgs transfer in transferResult.Transfers)
+        //            //    {
+        //            //        //varFinal = nombreAchivoRuta + "°" + subido + "°" + "CORRECTAMENTE SUBIDO" + transfer.FileName + " " + DateTime.Now + "°" + "1";
+        //            //        str.WriteLine("ARCHIVO FUE CARGADO OK: " + transfer.FileName + " " + DateTime.Now);
+        //            //        //exito = true;
+        //            //    }
+        //            //}
+        //        }
+        //    }
 
-            catch (Exception ex)
-            {
-                //varFinal = string.Empty + "°" + string.Empty + "°" + "[ERROR] NO SE PUDO CARGAR EL DOCUMENTO " + NombreArchivo + " " + DateTime.Now + "°" + "0";
-                //str.WriteLine("ERROR AL SUBIR ARCHIVO: " + fileTXTc + " " + e.Message + " " + DateTime.Now);
-                LogHandle.Graba_Log("ERROR AL SUBIR FTP: "+ex.Message);
-            }
+        //    catch (Exception ex)
+        //    {
+        //        //varFinal = string.Empty + "°" + string.Empty + "°" + "[ERROR] NO SE PUDO CARGAR EL DOCUMENTO " + NombreArchivo + " " + DateTime.Now + "°" + "0";
+        //        //str.WriteLine("ERROR AL SUBIR ARCHIVO: " + fileTXTc + " " + e.Message + " " + DateTime.Now);
+        //        LogHandle.Graba_Log(winterface, "ERROR AL SUBIR FTP: " +ex.Message);
+        //    }
 
 
-            return exito;
-        }
+        //    return exito;
+        //}
 
 
         //private void Generar_Texto(ref String _error)
@@ -799,7 +787,13 @@ namespace CapaInterface
         //}
 
 
-
+        //private string Obt_CD(string codalm)
+        //{
+        //    if (codalm.Contains("4,6"))
+        //        return "50003";
+        //    else
+        //        return "50001";
+        //}
 
     }
 }
