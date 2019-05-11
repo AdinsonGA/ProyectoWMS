@@ -75,6 +75,7 @@ namespace CapaDatos
 
             DataTable dt = null;
 
+
             string conex = "";
 
             if (retail_noretail == "5")
