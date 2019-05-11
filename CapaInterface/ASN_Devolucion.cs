@@ -215,6 +215,8 @@ namespace CapaInterface
             bool exito1 = false;
             bool exito2 = false;
 
+            //return true; // ojo x mientras
+
             exito1 = FTPUtil.Send_FTP_WMS(fileTXTc, fileTXTc, wcd);
             exito2 = FTPUtil.Send_FTP_WMS(fileTXTd, fileTXTd, wcd);
 
@@ -288,6 +290,7 @@ namespace CapaInterface
             }
 
             if (File.Exists(fileTXTc)) File.Delete(fileTXTc);
+            if (str.Length == 0) return false;
             File.WriteAllText(fileTXTc, str.ToString());
 
 

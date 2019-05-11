@@ -11,6 +11,8 @@ using WinSCP;
 using CapaDatos;
 using System.Data.OleDb;
 using System.Text.RegularExpressions;
+
+
 //using System.Data.SqlTypes;
 
 namespace CapaInterface
