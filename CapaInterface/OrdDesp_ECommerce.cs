@@ -11,6 +11,8 @@ using WinSCP;
 using CapaDatos;
 using System.Data.OleDb;
 using System.Text.RegularExpressions;
+
+
 //using System.Data.SqlTypes;
 
 namespace CapaInterface
@@ -24,21 +26,20 @@ namespace CapaInterface
     //}
 
 
-    public class ASN_Devolucion
+    public class OrdDesp_ECommerce
     {
 
         //************** Variables       
         //string wcodalm = DatosGenerales.codalm;
         string wcodcia = DatosGenerales.codcia;
+        string wcd = "50001";
         string waction = "CREATE";
-        string winterface = "DEVOL";
-        //int wdiasatras = 7;
+        string winterface = "ORDEC";
+        int wdiasatras = 57;
 
-        //************** Datatables globales para guardar las devoluciones obtenidas
+        //************** Datatables globales para guardar las prescripciones obtenidas
         DataTable dt_cab = null;
-        DataTable dt_det = null;
-        //DataTable dat_presccabNoRetail = null;
-        //DataTable dat_prescdetNoRetail = null;
+        DataTable dt_det = null;       
 
         //************** Files de texto
         //string nomfiltxt1 = $"ORH{DateTime.Now:yyyyMMdd}_{DateTime.Now:hhmmss}.TXT";
@@ -46,7 +47,7 @@ namespace CapaInterface
         string fileTXTc = "";
         string fileTXTd = "";
 
-        public void Genera_Interface_ASN_Devolucion()
+        public void Genera_Interface_OrdDesp()
         {
             bool exito = false;
             string wcd = "";
@@ -73,28 +74,22 @@ namespace CapaInterface
 
                 LogUtil.Graba_Log(winterface, "******* INICIO PROCESO *******");
 
+
                 if (Obtiene_Data())
                 {
-                    for (int xi = 1; xi <= 2; xi++)
+                    if (Genera_FileTXT())
                     {
-                        if (xi == 1)
-                            wcd = "50001";
-                        else
-                            wcd = "50003";
-
-                        if (Genera_FileTXT(wcd))
+                        if (Envia_FTP())
                         {
-                            if (Envia_FTP(wcd))
-                            {                                
-                                if (Actualiza_Flag_Data())
-                                {                                    
-                                    exito = true;
-                                }
-
-                                Archiva_TXT();
+                            if (Actualiza_Flag_Data())
+                            {
+                                exito = true;
                             }
+
+                            Archiva_TXT();
                         }
                     }
+
                 }
 
 
@@ -134,7 +129,7 @@ namespace CapaInterface
 
             //DataTable dtaux = null;
 
-            //dtaux = dt_cab; 
+            //dtaux = dt_cabe; 
 
 
             // OJO FALTA EVALUAR new System.Data.OleDb.OleDbCommand("set enginebehavior 80", dbConn).ExecuteNonQuery();
@@ -144,7 +139,7 @@ namespace CapaInterface
 
                 foreach (DataRow fila in dt_cab.Rows)
                 {
-                    cade += "'" + Convert.ToString(fila["desc_almac"]).Trim() + Convert.ToString(fila["desc_gudis"]).Trim() + "',";
+                    cade += "'" + Convert.ToString(fila["liq_id"]).Trim()  + "',";
 
                     // DIVIDIMOS LA CADENA PQ SALE ERROR EN EL VFP (STATEMENT TOO LONG)
                     //if (cade.Length > 900)
@@ -172,7 +167,7 @@ namespace CapaInterface
 
                 //foreach (var caden in listaCade)
 
-                string sql_upd = "UPDATE BDPOS.dbo.FVDESPC SET FLAG_WMS=1 WHERE ltrim(rtrim(desc_almac)) + ltrim(rtrim(desc_gudis)) IN (" + cade + ")";
+                string sql_upd = "UPDATE BD_ECOMMERCE.dbo.LIQUIDACION SET FLAG_WMS=1 WHERE ltrim(rtrim(liq_id)) IN (" + cade + ")";
 
                 try
                 {
@@ -207,15 +202,14 @@ namespace CapaInterface
         }
 
 
+
         /************** Envia_FTP
         * Metodo que envia el archivo de texto al FTP
         ***************/
-        private bool Envia_FTP(string wcd)
+        private bool Envia_FTP()
         {
             bool exito1 = false;
             bool exito2 = false;
-
-            //return true; // ojo x mientras
 
             exito1 = FTPUtil.Send_FTP_WMS(fileTXTc, fileTXTc, wcd);
             exito2 = FTPUtil.Send_FTP_WMS(fileTXTd, fileTXTd, wcd);
@@ -232,21 +226,19 @@ namespace CapaInterface
         /************** Genera_FileTXT
         * Metodo que genera la interface como archivo de texto para el WMS
         ***************/
-        private bool Genera_FileTXT(string wcd)
+        private bool Genera_FileTXT()
         {
-            bool exito = false;
-            string zcd = "";
 
             string fechor = DateTime.Now.ToString("yyyyMMddHHmmss") + ".TXT";
 
-            fileTXTc = Path.Combine(DatosGenerales.rutaMain, "ISH_" + fechor);
-            fileTXTd = Path.Combine(DatosGenerales.rutaMain, "ISL_" + fechor);
+            fileTXTc = Path.Combine(DatosGenerales.rutaMain, "ORH_" + fechor);
+            fileTXTd = Path.Combine(DatosGenerales.rutaMain, "ORD_" + fechor);
 
-            // Eliminar archivos ISH_, ISL
+            // Eliminar archivos ORH, ORD.TXT
             try
             {
                 var dir = new DirectoryInfo(DatosGenerales.rutaMain);
-                foreach (var file in dir.EnumerateFiles("IS*.TXT"))
+                foreach (var file in dir.EnumerateFiles("OR*.TXT"))
                 {
                     file.Delete();
                 }
@@ -255,114 +247,147 @@ namespace CapaInterface
             {
                 // omitido
             }
-
+      
             if (dt_cab == null || dt_cab.Rows.Count == 0)
             { return false; }
 
+
             string delimited = "|";
+            bool exito = false;
+            string zcd = "";
             var str = new StringBuilder();
 
             foreach (DataRow datarow in dt_cab.Rows)
             {
-
-                zcd = DatosGenerales.Obt_CDxAlm(datarow["desc_secci"].ToString());
-                if (zcd != wcd)
-                    continue;
-
-                str.Append(datarow["desc_ndesp"].ToString() + delimited);        // Numero de guia
-                str.Append(datarow["desc_ndesp"].ToString() + delimited);        // Numero de guia
-                str.Append(zcd + delimited);                                     // Facility code
+               
+                str.Append(datarow["oc_nord"].ToString() + delimited);           // Numero de orden de despacho
+                str.Append(wcd + delimited);                                     // Facility code
                 str.Append(wcodcia + delimited);                                 // Cod Cia
-                str.Append("" + delimited);
-                str.Append(waction + delimited);                                 // Action Code
-                str.Append("" + delimited);
-                str.Append("DEV" + delimited);                                   // DEV
-                str.Append("" + delimited);
-                str.Append("" + delimited);
-                str.Append("" + delimited);
-                str.Append("" + delimited);
-                str.Append(datarow["desc_almac"].ToString() + delimited);        // Tienda
+                str.Append(datarow["oc_nord"].ToString() + delimited);           // Numero de orden de despacho
+                str.Append(datarow["oc_canal"].ToString() + datarow["oc_almac"].ToString() + delimited);  // Order Type ejemplo: 5K
+                str.Append(Convert.ToDateTime(datarow["oc_fecha"]).ToString("yyyyMMdd") + delimited);        // Fecha emision
+                str.Append("" + delimited);                                      // exp_date
+                str.Append(Convert.ToDateTime(datarow["oc_fecha"]).ToString("yyyyMMdd") + delimited);        // Fecha de entrega requerida
+                str.Append(datarow["oc_client"].ToString() + delimited);        // dest_facility_code (cod cliente)
                 str.Append("" + delimited);
                 str.Append("" + delimited);
                 str.Append("" + delimited);
-                str.Append(Convert.ToDateTime(datarow["desc_fecha"]).ToString("yyyyMMdd") + delimited);  // Fecha emision
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append(waction + delimited);                                 // action code
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append(datarow["oc_client"].ToString() + delimited);        // Cliente 
+                for (int i = 1; i <= 17; i++)
+                { str.Append("" + delimited); };
+                str.Append(datarow["oc_docref"].ToString() + delimited);        // Nro O/C cliente ??
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append(datarow["oc_caden"].ToString() + delimited);         // Cadena
+                str.Append("" + delimited);
+                str.Append(Convert.ToDateTime(datarow["oc_fecha"]).ToString("yyyyMMdd") + delimited);       // Fecha de entrega requerida  ???
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);                                      // Ruta despacho ??
+                str.Append(datarow["oc_almac"].ToString() + delimited);         // Almacen 
+                str.Append(datarow["oc_canal"].ToString() + delimited);         // 5 , 6 
+                str.Append(datarow["oc_ccli"].ToString() + delimited);          // RUC destinatario
                 str.Append("\r\n");
+
             }
 
-            if (File.Exists(fileTXTc)) File.Delete(fileTXTc);
-            if (str.Length == 0) return false;
-            File.WriteAllText(fileTXTc, str.ToString());
+            File.AppendAllText(fileTXTc, str.ToString());
 
 
-            // DETALLE
+            // DETALLE NORETAIL
             int correlativo = 0;
-            string keyitem = "";
+            string keyitem = null;
+            char cero = '0';
             string grupo = "";
 
             str = new StringBuilder();
 
-            grupo = dt_det.Rows[0]["desc_almac"].ToString() + dt_det.Rows[0]["desc_gudis"].ToString();
+            grupo = dt_det.Rows[0]["od_nord"].ToString();
 
             foreach (DataRow datarow in dt_det.Rows)
             {
-
-                zcd = DatosGenerales.Obt_CDxAlm(datarow["desc_secci"].ToString());
+                zcd = DatosGenerales.Obt_CDxAlm(datarow["oc_almac"].ToString());
                 if (zcd != wcd)
                     continue;
 
                 // Resetear correlativo cuando cambia de grupo
-                if (dt_det.Rows[0]["desc_almac"].ToString() + datarow["desc_gudis"].ToString() != grupo)
+                if (datarow["od_nord"].ToString() != grupo)
                 {
                     correlativo = 0;
-                    grupo = dt_det.Rows[0]["desc_almac"].ToString() + dt_det.Rows[0]["desc_gudis"].ToString();
+                    grupo = datarow["od_nord"].ToString();
                 }
 
+                for (int xi = 0; xi < 12; xi++)
+                {
 
-                //for (int xi = 0; xi < 12; xi++)
-                //{
+                    string pad = xi.ToString().Trim().PadLeft(2, cero);
+                    var value = datarow["od_qo" + pad];
+                    if (value != DBNull.Value)
+                    {
+                        int cant = Convert.ToInt32(value);
+                        if (cant != 0)
+                        {
+                            correlativo += 1;
 
-                //string pad = xi.ToString().Trim().PadLeft(2, cero);
-                //var value = datarow["desd_med_per"];
-                //if (value != DBNull.Value)
-                //{
-                //int cant = Convert.ToInt32(value);
-                //if (cant != 0)
-                //{
-                correlativo += 1;
+                            string pos = (xi + 1).ToString().Trim().PadLeft(2, cero);
 
-                //string pos = (xi + 1).ToString().Trim().PadLeft(2, cero);
-                string pos = datarow["desd_med_lat"].ToString();
+                            // Evaluar si el articulo es prepack o solid
+                            if (datarow["od_cpack"].ToString() == "00001" || datarow["od_cpack"].ToString().Trim() == String.Empty)
+                            { keyitem = datarow["od_cart"].ToString() + datarow["od_cali"].ToString() + pos + DatosGenerales.CodNoRetail; }
+                            else
+                            { keyitem = datarow["od_cart"].ToString() + datarow["od_cali"].ToString() + datarow["od_cpack"].ToString() + DatosGenerales.CodNoRetail; }
 
-                keyitem = datarow["desd_artic"].ToString() + datarow["desd_calid"].ToString() + pos + DatosGenerales.CodRetail;
-
-                str.Append(datarow["desc_ndesp"].ToString() + delimited);        // Numero de guia
-                str.Append(datarow["desc_ndesp"].ToString() + delimited);        // Numero de guia
-                str.Append(zcd + delimited);                                     // Facility code
-                str.Append(wcodcia + delimited);                                 // Cod Cia
-                str.Append(correlativo.ToString() + delimited);                  // Numero correlativo
-                str.Append(waction + delimited);                                 // Action Code
-                str.Append("" + delimited);
-                str.Append("" + delimited);
-                str.Append("" + delimited);
-                str.Append(keyitem + delimited);                                 // Key item
-                for (int i = 1; i <= 12; i++)
-                    str.Append("" + delimited);
-                str.Append(correlativo.ToString() + delimited);                  // Cantidad
-                str.Append("\r\n");
-                //}
-                //}
-                //}
-
+                            str.Append(datarow["od_nord"].ToString() + delimited);            // Numero de orden de despacho
+                            str.Append(zcd + delimited);                                      // Facility code
+                            str.Append(wcodcia + delimited);                                  // Cod Cia
+                            str.Append(datarow["od_nord"].ToString() + delimited);            // Numero de orden de despacho
+                            str.Append(correlativo.ToString() + delimited);                   // Numero correlativo
+                            str.Append(keyitem + delimited);                                  // Key item
+                            for (int i = 1; i <= 10; i++)
+                            { str.Append("" + delimited); };
+                            str.Append(cant.ToString() + delimited);                          // Cantidad
+                            str.Append("" + delimited);
+                            str.Append(waction + delimited);
+                            str.Append("" + delimited);
+                            str.Append("" + delimited);
+                            str.Append("" + delimited);
+                            str.Append("" + delimited);
+                            str.Append(datarow["od_costo"].ToString() + delimited);           // Costo
+                            str.Append("0" + delimited);                                      // Sales
+                            for (int i = 1; i <= 16; i++)
+                            { str.Append("" + delimited); };
+                            str.Append(DateTime.Now.ToString("yyyyMMdd") + delimited);        // voucher_exp_date
+                            str.Append("\r\n");
+                        }
+                    }
+                }
             }
 
-            if (File.Exists(fileTXTd)) File.Delete(fileTXTd); 
-            File.WriteAllText(fileTXTd, str.ToString());
+            File.AppendAllText(fileTXTd, str.ToString());
+
+            //using (StreamWriter filtxt = new StreamWriter(fileTXTd, true, System.Text.Encoding.Default))
+            //{
+            //    filtxt.WriteLine(str.ToString());
+            //}
 
             exito = (File.Exists(fileTXTc) && File.Exists(fileTXTd));
+
             return exito;
-
         }
-
 
 
 
@@ -381,7 +406,7 @@ namespace CapaInterface
             string msgerror = "";
 
             // CABECERA
-            string sql = "[USP_WMS_Obt_Devoluciones_Tda]";
+            string sql = "[USP_WMS_Obt_Pedidos_Carrito]";
             //string sql = "select * from BDPOS.dbo.FVDESPC where DESC_FECHA>=GETDATE()-7";
             dt_cab = Conexion.Obt_SQL(sql, ref msgerror, "C");
 
@@ -407,7 +432,7 @@ namespace CapaInterface
             if (dt_cab != null && dt_cab.Rows.Count > 0)
                 exito = true;
 
-            LogUtil.Graba_Log(winterface, "CONSULTA DATA OK"); 
+            LogUtil.Graba_Log(winterface, "CONSULTA DATA OK");
 
             return exito;
 
@@ -480,13 +505,15 @@ namespace CapaInterface
         //            transferOptions.TransferMode = TransferMode.Binary;
         //            TransferOperationResult transferResult;
 
-        //            transferResult = session.PutFiles(file_origen, "/data/730/input/" + Path.GetFileName(file_destino), false, transferOptions);
+        //            //transferResult = session.PutFiles(fileTXTc, "/data/02_PE/input/" + Path.GetFileName(fileTXTc), false, transferOptions);
+
+        //            transferResult = session.PutFiles(file_origen, "/data/730/input/" + Path.GetFileName(file_destino), false, transferOptions);                                        
 
         //            // Throw on any error
         //            transferResult.Check();
 
+        //            //if (transferResult.IsSuccess == true) exito = true;
         //            exito = transferResult.IsSuccess;
-   
 
         //            // Print results
         //            //if (exito)
@@ -505,7 +532,7 @@ namespace CapaInterface
         //    {
         //        //varFinal = string.Empty + "°" + string.Empty + "°" + "[ERROR] NO SE PUDO CARGAR EL DOCUMENTO " + NombreArchivo + " " + DateTime.Now + "°" + "0";
         //        //str.WriteLine("ERROR AL SUBIR ARCHIVO: " + fileTXTc + " " + e.Message + " " + DateTime.Now);
-        //        LogHandle.Graba_Log(winterface, "ERROR AL SUBIR FTP: " + ex.Message);
+        //        LogHandle.Graba_Log(winterface, "ERROR AL SUBIR FTP: " +ex.Message);
         //    }
 
 
@@ -523,8 +550,13 @@ namespace CapaInterface
         //}
 
 
-
+        //private string Obt_CD(string codalm)
+        //{
+        //    if (codalm.Contains("4,6"))
+        //        return "50003";
+        //    else
+        //        return "50001";
+        //}
 
     }
 }
-

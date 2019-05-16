@@ -58,6 +58,7 @@
     <Compile Include="FTPUtil.cs" />
     <Compile Include="Leer_Ftp.cs" />
     <Compile Include="LogUtil.cs" />
+    <Compile Include="OrdDesp_ECommerce.cs" />
     <Compile Include="Prescripcion.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Purchase.cs" />
