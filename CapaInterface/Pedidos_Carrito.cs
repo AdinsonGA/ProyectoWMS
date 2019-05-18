@@ -26,7 +26,7 @@ namespace CapaInterface
     //}
 
 
-    public class OrdDesp_ECommerce
+    public class Pedidos_Carrito
     {
 
         //************** Variables       
