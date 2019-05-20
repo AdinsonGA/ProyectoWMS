@@ -35,7 +35,7 @@ namespace CapaInterface
         string wcd = "50001";
         string waction = "CREATE";
         string winterface = "ORDEC";
-        int wdiasatras = 57;
+        int wdiasatras = 7;
 
         //************** Datatables globales para guardar las prescripciones obtenidas
         DataTable dt_cab = null;
