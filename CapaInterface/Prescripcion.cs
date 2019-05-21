@@ -345,6 +345,9 @@ namespace CapaInterface
             string zcd = "";
             var str = new StringBuilder();
 
+            //int numberOfRecords = dt_cab_retail.AsEnumerable().Where(x => x["cgud_almac"].ToString() == wcd).ToList().Count;
+            //if (numberOfRecords == 0) return false;
+
             foreach (DataRow datarow in dt_cab_retail.Rows)
             {
 
@@ -396,7 +399,8 @@ namespace CapaInterface
                 str.Append("\r\n");
             }
 
-            if (File.Exists(fileTXTc)) { File.Delete(fileTXTc); }
+            if (File.Exists(fileTXTc)) File.Delete(fileTXTc); 
+            if (str.Length == 0) return false;
             File.WriteAllText(fileTXTc, str.ToString());
 
 
