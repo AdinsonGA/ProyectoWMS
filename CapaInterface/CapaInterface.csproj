@@ -31,6 +31,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Mono.Security, Version=4.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
@@ -53,18 +54,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Asn_Purchase.cs" />
+    <Compile Include="Crear_Carpetas.cs" />
     <Compile Include="DatosGenerales.cs" />
     <Compile Include="ASN_Devolucion.cs" />
     <Compile Include="FTPUtil.cs" />
     <Compile Include="Leer_Ftp.cs" />
     <Compile Include="LogUtil.cs" />
     <Compile Include="Pedidos_Carrito.cs" />
+    <Compile Include="Pedidos_Catalogo.cs" />
     <Compile Include="Prescripcion.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Purchase.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

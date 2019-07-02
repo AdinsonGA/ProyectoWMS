@@ -9,7 +9,6 @@ namespace CapaInterface
 {
     public static class FTPUtil
     {
-
         public static bool Send_FTP_WMS(string file_origen, string file_destino, string wcd)
         {
             bool exito = false;
@@ -70,7 +69,7 @@ namespace CapaInterface
             {
                 //varFinal = string.Empty + "°" + string.Empty + "°" + "[ERROR] NO SE PUDO CARGAR EL DOCUMENTO " + NombreArchivo + " " + DateTime.Now + "°" + "0";
                 //str.WriteLine("ERROR AL SUBIR ARCHIVO: " + fileTXTc + " " + e.Message + " " + DateTime.Now);
-                LogUtil.Graba_Log("PRESC", "ERROR AL SUBIR FTP: " + ex.Message);
+                LogUtil.Graba_Log("PRESC", "ERROR AL SUBIR FTP: " + ex.Message,true,"");
             }
 
 

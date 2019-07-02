@@ -23,7 +23,6 @@ namespace CapaInterface
     //    public DataSet DatosDevueltos { get; set; }
     //}
 
-
     public class ASN_Devolucion
     {
 
@@ -31,8 +30,9 @@ namespace CapaInterface
         //string wcodalm = DatosGenerales.codalm;
         string wcodcia = DatosGenerales.codcia;
         string waction = "CREATE";
-        string winterface = "DEVOL";
+        string winterface = "ASN_DEVOL";
         //int wdiasatras = 7;
+        string wcd = "50001";
 
         //************** Datatables globales para guardar las devoluciones obtenidas
         DataTable dt_cab = null;
@@ -53,73 +53,57 @@ namespace CapaInterface
 
             try
             {
+                //verifica si existe la carpeta work antes de empezar a crear los archivo , si no existe lo crea
+                Crear_Carpetas objCreaCarpeta = new Crear_Carpetas();
+                objCreaCarpeta.ArchivaInterface("WMS");
 
-                //var resultadoObtPresc = Obtiene_Prescrip();
-                //if (!resultadoObtPres.Exito)
-                //{
-                //    //GraboLog
-                //    //Cierro conexion
-                //    return;
-                //}
-
-                //var resultadoGeneraFileTxt = Genera_FileTXT();
-                //if (!resultadoGeneraFileTxt.Exito)
-                //{
-                //    //GraboLog
-                //    //Cierro conexion
-                //    return;
-                //}
-
-
-                LogUtil.Graba_Log(winterface, "******* INICIO PROCESO *******");
+                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M001"].ToString(), false, "");
 
                 if (Obtiene_Data())
                 {
-                    for (int xi = 1; xi <= 2; xi++)
+                    //for (int xi = 1; xi <= 2; xi++)
+                    //{
+                    //    if (xi == 1)
+                    //        wcd = "50001";
+                    //    else
+                    //        wcd = "50003";
+
+                    if (Genera_FileTXT())
                     {
-                        if (xi == 1)
-                            wcd = "50001";
-                        else
-                            wcd = "50003";
-
-                        if (Genera_FileTXT(wcd))
+                        if (Envia_FTP())
                         {
-                            if (Envia_FTP(wcd))
-                            {                                
-                                if (Actualiza_Flag_Data())
-                                {                                    
-                                    exito = true;
-                                }
-
-                                Archiva_TXT();
+                            if (Actualiza_Flag_Data())
+                            {
+                                exito = true;
                             }
+
+                            Archiva_TXT();
                         }
                     }
+                    //}
                 }
-
 
                 if (exito)
                 {
-                    LogUtil.Graba_Log(winterface, "SE PROCESO OK"); // OJO POR MIENTRAS
+                    LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M002"].ToString(), false, ""); 
                 }
                 else
                 {
-                    LogUtil.Graba_Log(winterface, "NO PROCESO NADA"); // OJO POR MIENTRAS
+                    LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M003"].ToString(), false, ""); 
                 }
 
 
             }
             catch (Exception ex)
             {
-                LogUtil.Graba_Log(winterface, "ERROR: " + ex.ToString());
+                LogUtil.Graba_Log(winterface, "ERROR: " + ex.ToString(), true, "");
             }
             finally
             {
-                LogUtil.Graba_Log(winterface, "******* FIN PROCESO *******");
+                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M004"].ToString(), false, "");
             }
         }
         //****************************************************************************
-
 
 
         /************** Actualiza_Flag
@@ -189,7 +173,7 @@ namespace CapaInterface
                             //System.Data.OleDb.OleDbCommand com_upd = new System.Data.OleDb.OleDbCommand(sql_upd, dbConn);
                             //com_upd.ExecuteNonQuery();
                             //int count = caden.Count(f => f == ',');
-                            LogUtil.Graba_Log(winterface, "UPDATE OK Cant Docum: " + Convert.ToString(dt_cab.Rows.Count));
+                            LogUtil.Graba_Log(winterface, winterface + " : Se actualizó : " + Convert.ToString(dt_cab.Rows.Count) + " Documentos", false, "");
                         }
 
                     }
@@ -197,20 +181,17 @@ namespace CapaInterface
                 }
                 catch (Exception ex)
                 {
-                    LogUtil.Graba_Log(winterface, "ERROR: " + ex.ToString());
+                    LogUtil.Graba_Log(winterface, "ERROR: " + ex.ToString(), true, "");
                 }
 
             }
-
             return exito;
-
         }
-
 
         /************** Envia_FTP
         * Metodo que envia el archivo de texto al FTP
         ***************/
-        private bool Envia_FTP(string wcd)
+        private bool Envia_FTP()
         {
             bool exito1 = false;
             bool exito2 = false;
@@ -221,9 +202,9 @@ namespace CapaInterface
             exito2 = FTPUtil.Send_FTP_WMS(fileTXTd, fileTXTd, wcd);
 
             if (exito1 && exito2)
-            { LogUtil.Graba_Log(winterface, "ENVIA FTP OK "); }
+            { LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M006"].ToString(), false, ""); }
             else
-            { LogUtil.Graba_Log(winterface, "ENVIA FTP ERROR "); }
+            { LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M007"].ToString(), true, ""); }
 
             return (exito1 && exito2);
         }
@@ -232,29 +213,27 @@ namespace CapaInterface
         /************** Genera_FileTXT
         * Metodo que genera la interface como archivo de texto para el WMS
         ***************/
-        private bool Genera_FileTXT(string wcd)
+        private bool Genera_FileTXT()
         {
             bool exito = false;
-            string zcd = "";
 
             string fechor = DateTime.Now.ToString("yyyyMMddHHmmss") + ".TXT";
 
-            fileTXTc = Path.Combine(DatosGenerales.rutaMain, "ISH_" + fechor);
-            fileTXTd = Path.Combine(DatosGenerales.rutaMain, "ISL_" + fechor);
+            fileTXTc = Path.Combine(Crear_Carpetas.WORK, "ISH_DEV_" + fechor);
+            fileTXTd = Path.Combine(Crear_Carpetas.WORK, "ISL_DEV_" + fechor);
 
-            // Eliminar archivos ISH_, ISL
+
+            // Eliminar archivos ISH_DEV, ISL_DEV.TXT
             try
             {
-                var dir = new DirectoryInfo(DatosGenerales.rutaMain);
-                foreach (var file in dir.EnumerateFiles("IS*.TXT"))
-                {
-                    file.Delete();
-                }
+                if (File.Exists(fileTXTc)) File.Delete(fileTXTc);
+                if (File.Exists(fileTXTd)) File.Delete(fileTXTd);
             }
-            catch
+            catch (Exception ex)
             {
-                // omitido
+                LogUtil.Graba_Log(winterface, winterface + " ERROR: " + ex.ToString(), true, "");
             }
+
 
             if (dt_cab == null || dt_cab.Rows.Count == 0)
             { return false; }
@@ -264,14 +243,14 @@ namespace CapaInterface
 
             foreach (DataRow datarow in dt_cab.Rows)
             {
+                //zcd = DatosGenerales.Obt_CDxAlm(datarow["desc_secci"].ToString());
 
-                zcd = DatosGenerales.Obt_CDxAlm(datarow["desc_secci"].ToString());
-                if (zcd != wcd)
-                    continue;
+                //if (zcd != wcd)
+                //    continue;
 
                 str.Append(datarow["desc_ndesp"].ToString() + delimited);        // Numero de guia
                 str.Append(datarow["desc_ndesp"].ToString() + delimited);        // Numero de guia
-                str.Append(zcd + delimited);                                     // Facility code
+                str.Append(wcd + delimited);                                     // Facility code
                 str.Append(wcodcia + delimited);                                 // Cod Cia
                 str.Append("" + delimited);
                 str.Append(waction + delimited);                                 // Action Code
@@ -298,6 +277,7 @@ namespace CapaInterface
             int correlativo = 0;
             string keyitem = "";
             string grupo = "";
+            string cadalm;
 
             str = new StringBuilder();
 
@@ -306,9 +286,9 @@ namespace CapaInterface
             foreach (DataRow datarow in dt_det.Rows)
             {
 
-                zcd = DatosGenerales.Obt_CDxAlm(datarow["desc_secci"].ToString());
-                if (zcd != wcd)
-                    continue;
+                //zcd = DatosGenerales.Obt_CDxAlm(datarow["desc_secci"].ToString());
+                //if (zcd != wcd)
+                //    continue;
 
                 // Resetear correlativo cuando cambia de grupo
                 if (dt_det.Rows[0]["desc_almac"].ToString() + datarow["desc_gudis"].ToString() != grupo)
@@ -334,20 +314,33 @@ namespace CapaInterface
                 string pos = datarow["desd_med_lat"].ToString();
 
                 keyitem = datarow["desd_artic"].ToString() + datarow["desd_calid"].ToString() + pos + DatosGenerales.CodRetail;
+                cadalm = datarow["desc_caden"].ToString() + datarow["desc_almac"].ToString();
 
                 str.Append(datarow["desc_ndesp"].ToString() + delimited);        // Numero de guia
                 str.Append(datarow["desc_ndesp"].ToString() + delimited);        // Numero de guia
-                str.Append(zcd + delimited);                                     // Facility code
+                str.Append(wcd + delimited);                                     // Facility code
                 str.Append(wcodcia + delimited);                                 // Cod Cia
                 str.Append(correlativo.ToString() + delimited);                  // Numero correlativo
                 str.Append(waction + delimited);                                 // Action Code
-                str.Append("" + delimited);
+                str.Append(datarow["desc_ndesp"].ToString() + delimited);        //Numero de guia (*)
                 str.Append("" + delimited);
                 str.Append("" + delimited);
                 str.Append(keyitem + delimited);                                 // Key item
-                for (int i = 1; i <= 12; i++)
-                    str.Append("" + delimited);
-                str.Append(correlativo.ToString() + delimited);                  // Cantidad
+                for (int i = 1; i <= 9; i++)
+                { str.Append("" + delimited); }
+                str.Append("100" + delimited);                                   // valor fijo (*)
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append(datarow["desd_pares"].ToString() + delimited);        // cantidad a devolver
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append(cadalm + delimited);        // cadena + almacen (*)
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append("" + delimited);
+                str.Append(keyitem + delimited);                                 // Key item (*)
+                str.Append(datarow["desd_prvta"].ToString() + delimited);        // precio articulo (*)
                 str.Append("\r\n");
                 //}
                 //}
@@ -355,7 +348,7 @@ namespace CapaInterface
 
             }
 
-            if (File.Exists(fileTXTd)) File.Delete(fileTXTd); 
+            if (File.Exists(fileTXTd)) File.Delete(fileTXTd);
             File.WriteAllText(fileTXTd, str.ToString());
 
             exito = (File.Exists(fileTXTc) && File.Exists(fileTXTd));
@@ -364,15 +357,12 @@ namespace CapaInterface
         }
 
 
-
-
         /************** Obtiene_Prescrip
         * Metodo que obtiene las prescripciones desde el Sis (dbf)
         *****************/
         private bool Obtiene_Data()
         {
-
-            //LogHandle.Graba_Log("PRESC", "ENTRANDO A CONSULTAR DATA"); // OJO POR MIENTRAS
+            Int32 Dias = Convert.ToInt32(ConfigurationManager.AppSettings["dias"]);
 
             bool exito = false;
 
@@ -383,11 +373,12 @@ namespace CapaInterface
             // CABECERA
             string sql = "[USP_WMS_Obt_Devoluciones_Tda]";
             //string sql = "select * from BDPOS.dbo.FVDESPC where DESC_FECHA>=GETDATE()-7";
-            dt_cab = Conexion.Obt_SQL(sql, ref msgerror, "C");
+            dt_cab = Conexion.Obt_SQL(sql, ref msgerror, "C", Dias);
+
 
             if (msgerror != "")
             {
-                LogUtil.Graba_Log(winterface, msgerror);
+                LogUtil.Graba_Log(winterface, msgerror, true, "");
                 return false;
             }
 
@@ -395,11 +386,11 @@ namespace CapaInterface
             if (dt_cab != null && dt_cab.Rows.Count > 0)
             {
                 //sql = "SELECT dgud_gudis,dgud_artic,dgud_calid,dgud_costo,dgud_codpp,dgud_cpack,dgud_touni,dgud_med00,dgud_med01,dgud_med02,dgud_med03,dgud_med04,dgud_med05,dgud_med06,dgud_med07,dgud_med08,dgud_med09,dgud_med10,dgud_med11 FROM SCCCGUD INNER JOIN SCDDGUD ON CGUD_GUDIS=DGUD_GUDIS WHERE CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " AND EMPTY(FLAG_WMS) ORDER BY cgud_gudis ";
-                dt_det = Conexion.Obt_SQL(sql, ref msgerror, "D");
+                dt_det = Conexion.Obt_SQL(sql, ref msgerror, "D", Dias);
 
                 if (msgerror != "")
                 {
-                    LogUtil.Graba_Log(winterface, msgerror);
+                    LogUtil.Graba_Log(winterface, msgerror, true, "");
                     return false;
                 }
             }
@@ -407,123 +398,51 @@ namespace CapaInterface
             if (dt_cab != null && dt_cab.Rows.Count > 0)
                 exito = true;
 
-            LogUtil.Graba_Log(winterface, "CONSULTA DATA OK"); 
-
+            LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M010"].ToString(), false, "");
             return exito;
-
         }
-
-
 
         private void Archiva_TXT()
         {
             try
             {
-
-                string path = Path.Combine(DatosGenerales.rutaMain, @"BACKUP\");
-                if (!Directory.Exists(path))
-                {
-                    Directory.CreateDirectory(path);
-                }
+                Crear_Carpetas objCreaCarpeta = new Crear_Carpetas();
+                objCreaCarpeta.ArchivaInterface(wcd);
 
                 if (File.Exists(fileTXTc))
                 {
-                    if (File.Exists(path + Path.GetFileName(fileTXTc))) File.Delete(path + Path.GetFileName(fileTXTc));
-                    File.Move(fileTXTc, path + Path.GetFileName(fileTXTc)); // Try to move
+                    //if (wcd == "50001") //cabecera
+                    //{
+                    if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc));
+                    File.Move(fileTXTc, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc)); // Try to move
+                    //}
+                    //else
+                    //{
+                    //    if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc));
+                    //    File.Move(fileTXTc, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc)); // Try to move
+                    //}
                 }
 
-                if (File.Exists(fileTXTd))
+                if (File.Exists(fileTXTd))//detalle
                 {
-                    if (File.Exists(path + Path.GetFileName(fileTXTd))) File.Delete(path + Path.GetFileName(fileTXTd));
-                    File.Move(fileTXTd, path + Path.GetFileName(fileTXTd)); // Try to move
+                    //if (CodAlmacen == "50001")
+                    //{
+                    if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd));
+                    File.Move(fileTXTd, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd)); // Try to move
+                    //}
+                    //else
+                    //{
+                    //    if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd));
+                    //    File.Move(fileTXTd, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd)); // Try to move
+                    //}
                 }
-
 
             }
-            catch
+            catch (Exception ex)
             {
-                // omitido
+                LogUtil.Graba_Log(winterface, "ERROR: " + ex.ToString(), true, "");
             }
         }
-
-        //private bool Send_FTP_WMS(string file_origen, string file_destino)
-        //{
-        //    bool exito = false;
-
-        //    try
-        //    {
-        //        // Setup session options
-        //        SessionOptions sessionOptions = new SessionOptions
-        //        {
-        //            Protocol = Protocol.Sftp,
-        //            HostName = DatosGenerales.UrlFtp, //"172.24.20.183"
-        //            UserName = DatosGenerales.UserFtp, //"retailc"
-        //            Password = DatosGenerales.PassFtp, //"1wiAwNRa"
-        //            PortNumber = 22,
-        //            GiveUpSecurityAndAcceptAnySshHostKey = true
-        //        };
-
-        //        using (Session session = new Session())
-        //        {
-
-        //            // Connect
-        //            session.Open(sessionOptions);
-        //            //str.WriteLine("**************** CONECTADO CON EXITO AL FTP " + DateTime.Now);
-        //            //str.WriteLine("INICIO SUBIDA DE ACHIVO " + NombreArchivo + " AL SFTP " + DateTime.Now);
-        //            //string nombreAchivoRuta = NombreArchivo + DateTime.Now.ToString("yyyyMMdd") + ".mnt";
-        //            //string nombreArchivoCompleto = fileTXTc; // "\\\\200.1.1.40\\appl\\pos\\interfaces\\" + nombreAchivoRuta;
-
-        //            // Upload files
-        //            TransferOptions transferOptions = new TransferOptions();
-        //            transferOptions.FilePermissions = null; // This is default
-        //            transferOptions.PreserveTimestamp = false;
-        //            transferOptions.TransferMode = TransferMode.Binary;
-        //            TransferOperationResult transferResult;
-
-        //            transferResult = session.PutFiles(file_origen, "/data/730/input/" + Path.GetFileName(file_destino), false, transferOptions);
-
-        //            // Throw on any error
-        //            transferResult.Check();
-
-        //            exito = transferResult.IsSuccess;
-   
-
-        //            // Print results
-        //            //if (exito)
-        //            //{
-        //            //    foreach (TransferEventArgs transfer in transferResult.Transfers)
-        //            //    {
-        //            //        //varFinal = nombreAchivoRuta + "°" + subido + "°" + "CORRECTAMENTE SUBIDO" + transfer.FileName + " " + DateTime.Now + "°" + "1";
-        //            //        str.WriteLine("ARCHIVO FUE CARGADO OK: " + transfer.FileName + " " + DateTime.Now);
-        //            //        //exito = true;
-        //            //    }
-        //            //}
-        //        }
-        //    }
-
-        //    catch (Exception ex)
-        //    {
-        //        //varFinal = string.Empty + "°" + string.Empty + "°" + "[ERROR] NO SE PUDO CARGAR EL DOCUMENTO " + NombreArchivo + " " + DateTime.Now + "°" + "0";
-        //        //str.WriteLine("ERROR AL SUBIR ARCHIVO: " + fileTXTc + " " + e.Message + " " + DateTime.Now);
-        //        LogHandle.Graba_Log(winterface, "ERROR AL SUBIR FTP: " + ex.Message);
-        //    }
-
-
-        //    return exito;
-        //}
-
-
-        //private void Generar_Texto(ref String _error)
-        //{
-        //    using (System.IO.StreamWriter file =
-        //    new System.IO.StreamWriter(@"C:\PruebaServicio\WriteLines2.txt", true))
-        //    {
-        //        file.WriteLine("Fourth line");
-        //    }
-        //}
-
-
-
 
     }
 }

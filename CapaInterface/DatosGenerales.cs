@@ -12,13 +12,11 @@ using System.Text;
 
 namespace CapaInterface
 {
-
     public class CDxAlm
     {
-         public string codalm = "";
-         public string CD = "";
+        public string codalm = "";
+        public string CD = "";
     }
-
 
     public static class DatosGenerales
     {
@@ -45,38 +43,54 @@ namespace CapaInterface
 
         public static void Llena_CDxAlm()
         {
-            string sql = "SELECT tab_ctab as codalm, left(tab_cpar6,3) as cd FROM TABGEN WHERE tab_tipo='206' AND !EMPTY(tab_ctab) ";
-            DataTable dt_tabgen = null;
-            dt_tabgen = Conexion.Obt_dbf(sql, DatosGenerales.CodNoRetail);
-
-            listCDxAlm = dt_tabgen.AsEnumerable().Select(m => new CDxAlm()
+            try
             {
-                codalm = m.Field<string>("codalm"),
-                CD = m.Field<string>("CD"),
-            }).ToList();
 
-            dt_tabgen = null;
+                string sql = "SELECT tab_ctab as codalm, left(tab_cpar6,3) as cd FROM TABGEN WHERE tab_tipo='206' AND !EMPTY(tab_ctab)";
+                DataTable dt_tabgen = null;
+                dt_tabgen = Conexion.Obt_dbf(sql, DatosGenerales.CodNoRetail);
+
+                listCDxAlm = dt_tabgen.AsEnumerable().Select(m => new CDxAlm()
+                {
+                    codalm = m.Field<string>("codalm"),
+                    CD = m.Field<string>("CD"),
+                }).ToList();
+
+                dt_tabgen = null;
+            }
+            catch (Exception ex)
+            {
+
+                //LogUtil.Graba_Log(winterface, winterface + " ERROR: " + ex.ToString(), true, "");
+                throw ex;
+            }
+           
         }
-
 
         public static string Obt_CDxAlm(string codalm)
         {
+            //Llena_CDxAlm();  // cquinto: esto no estaba aqui
             var resu = listCDxAlm.Where(i => i.codalm.Trim() == codalm.Trim()).FirstOrDefault();
             if (resu == null)
                 return " ";
 
-            if (resu.CD.Trim() == "204" )  // Tabgen.dbf  tabla 206
+            if (resu.CD.Trim() == "204")  // Tabgen.dbf  tabla 206
                 return "50003";
             else
                 return "50001";
         }
 
+#if DEBUG //Ruta matriz para generar compilado en modo de pruebas
 
-#if DEBUG
-        //public static string rutaMain = @"c:\pruebaservicio\";
-        public static string rutaMain = @"\\10.10.10.6\vol1\TEMPORAL\CQUINTO\PruebaServicioWMS\";
-#else
-    public static string rutaMain = Path.GetDirectoryName(Assembly.GetAssembly(typeof(DatosGenerales)).CodeBase);
+        //public static string work = @"" + ConfigurationManager.AppSettings["WORK"].ToString() + "";
+        //public static string rutaMain = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\" + work;
+        public static string rutaMain = @"" + ConfigurationManager.AppSettings["WMS"].ToString() + ""; //+ work;
+
+#else  //Ruta matriz para generar compilado en modo de produccion(Release)
+
+        //public static string work = @"" + ConfigurationManager.AppSettings["WORK"].ToString() + "";
+        //public static string rutaMain = Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + @"\" + work;
+        public static string rutaMain = @"" + ConfigurationManager.AppSettings["WMS"].ToString() + ""; //+ work;
 #endif
 
     }

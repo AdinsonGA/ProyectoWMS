@@ -10,6 +10,7 @@ using Npgsql;
 using System.Net;
 using System.Collections;
 using System.Data.SqlClient;
+using System.Configuration;
 
 namespace CapaInterface
 {
@@ -24,9 +25,9 @@ namespace CapaInterface
     {
 
         //************** Envio de Prescripciones       
-        string wcodalm = "50001";  //DatosGenerales.codalm;
         string wcodcia = DatosGenerales.codcia;
         string fechor = DateTime.Now.ToString("yyyyMMddHHmmss") + ".TXT";
+        string Interface = "LEER";
         string[] file_TXT_OBL;
         string[] file_TXT_OBS;
 
@@ -49,44 +50,52 @@ namespace CapaInterface
 
         public void Genera_Interface_Lectura()
         {
+            //verifica si existe la carpeta WMS antes de empezar a crear los archivo , si no existe lo crea
+            Crear_Carpetas objCreaCarpeta = new Crear_Carpetas();
+            objCreaCarpeta.ArchivaInterface("WMS");
+
             bool exito = false;
             try
             {
-
-                LogUtil.Graba_Log("LECTURA", "****** INICIO DE LECTURA TXT *******");
+                LogUtil.Graba_Log(Interface, "****** INICIO DE LECTURA TXT *******", false, "");
 
                 if (Lee_Descarga_Archivo())
                 {
+                    string wruta_50001 = "\\50001\\";
+                    string wruta_50003 = "\\50003\\";
+
                     if (Graba_Sql())
                     {
-                        if (Archiva_TXT(file_TXT_OBL, file_TXT_OBS, file_TXT_SVH, file_TXT_SVD, file_TXT_IHT))
+                        if (Archiva_TXT(file_TXT_OBL, file_TXT_OBS, file_TXT_SVH, file_TXT_SVD, file_TXT_IHT, wruta_50001) && Archiva_TXT(file_TXT_OBL, file_TXT_OBS, file_TXT_SVH, file_TXT_SVD, file_TXT_IHT, wruta_50003))
                         {
-                            if (Borra_FTP(file_TXT_OBL, file_TXT_OBS, file_TXT_SVH, file_TXT_SVD, file_TXT_IHT))
+                            if (Borra_FTP(file_TXT_OBL, file_TXT_OBS, file_TXT_SVH, file_TXT_SVD, file_TXT_IHT, wruta_50001) && Borra_FTP(file_TXT_OBL, file_TXT_OBS, file_TXT_SVH, file_TXT_SVD, file_TXT_IHT, wruta_50003))
                             {
                                 exito = true;
                             }
                         }
                     }
-                }
-
-                if (exito)
-                {
-                    LogUtil.Graba_Log("LECTURA", "LECTURA DE ARCHIVOS DE TEXTO OK");
-                }
-                else
-                {
-                    LogUtil.Graba_Log("LECTURA", "NO SE PUDO LEER NADA");
-                }
 
 
+                    if (exito)
+                    {
+                        LogUtil.Graba_Log(Interface, "LECTURA DE ARCHIVOS DE TEXTO OK", false, "");
+                    }
+                    else
+                    {
+                        LogUtil.Graba_Log(Interface, "NO EXISTE INFORMACION PARA LEER", false, "");
+                    }
+
+                }
             }
+
+
             catch (Exception ex)
             {
-                LogUtil.Graba_Log("LECTURA", "ERROR: " + ex.ToString());
+                LogUtil.Graba_Log(Interface, "ERROR: " + ex.Message, true, "");
             }
             finally
             {
-                LogUtil.Graba_Log("LECTURA", "******** FIN DE LECTURA DE TXT *********");
+                LogUtil.Graba_Log(Interface, "******** FIN DE LECTURA DE TXT *********", false, "");
             }
         }
         //****************************************************************************
@@ -111,7 +120,8 @@ namespace CapaInterface
                 TransferOperationResult transferResult;
 
                 // Lee y copia los archivos al disco local, carpeta Temporal
-                transferResult = session.GetFiles("/data/730/output/", DatosGenerales.rutaMain + @"Work\", false, transferOptions);
+                transferResult = session.GetFiles("/data/730/50001/output/", Crear_Carpetas.WORK, false, transferOptions);
+                transferResult = session.GetFiles("/data/730/50003/output/", Crear_Carpetas.WORK, false, transferOptions);
 
                 // Throw on any error
                 transferResult.Check();
@@ -127,6 +137,7 @@ namespace CapaInterface
         {
             bool exito = false;
             string error = "";
+            string ArchiOBL = "", ArchiOBS = "", ArchiSVH = "", ArchiSVD = "", ArchiIHT = "";
             string sqlquery = "USP_INSERTAR_TEMP_OBL_OBS_SVH_SVD";
             try
             {
@@ -139,354 +150,564 @@ namespace CapaInterface
 
                 DataTable dt_IHT = new DataTable();
 
+                //ruta = ConfigurationManager.AppSettings["WORK"].ToString();
 
-            string carpetatemporal = DatosGenerales.rutaMain + @"Work\";
-                file_TXT_OBL = Directory.GetFiles(@carpetatemporal, "OBL*.*");
-                file_TXT_OBS = Directory.GetFiles(@carpetatemporal, "OBS*.*");
+                //string carpetatemporal = DatosGenerales.rutaMain + @ruta;
+                string carpetatemporal = Crear_Carpetas.WORK;
 
-                file_TXT_SVH = Directory.GetFiles(@carpetatemporal, "SVH*.*");
-                file_TXT_SVD = Directory.GetFiles(@carpetatemporal, "SVD*.*");
+
+                file_TXT_OBL = Directory.GetFiles(@carpetatemporal, "OBL*.*");//cabecera
+                file_TXT_OBS = Directory.GetFiles(@carpetatemporal, "OBS*.*");//detalle
+
+                file_TXT_SVH = Directory.GetFiles(@carpetatemporal, "SVH*.*");//cabecera
+                file_TXT_SVD = Directory.GetFiles(@carpetatemporal, "SVD*.*");//detalle
                 file_TXT_IHT = Directory.GetFiles(@carpetatemporal, "IHT*.*");
 
 
-            if ((file_TXT_OBL.Length == 0) &&  (file_TXT_OBS.Length == 0) && (file_TXT_SVH.Length == 0) && (file_TXT_SVD.Length == 0) && (file_TXT_IHT.Length == 0)) // Si no hay informacion... retorna
+                if ((file_TXT_OBL.Length == 0) && (file_TXT_OBS.Length == 0) && (file_TXT_SVH.Length == 0) && (file_TXT_SVD.Length == 0) && (file_TXT_IHT.Length == 0)) // Si no hay informacion... retorna
                 {
                     return false;
                 }
-
-                if (!Directory.Exists(@carpetatemporal)) Directory.CreateDirectory(@carpetatemporal);
-
-                string path = Path.Combine(DatosGenerales.rutaMain + @"Work\");
-                if (!Directory.Exists(path))
+                else
                 {
-                    Directory.CreateDirectory(path);
+                    //--------- Procesamos tabla OBL ----------//
+                    dt_OBL.Columns.Add("hdr_group_nbr", typeof(string));
+                    dt_OBL.Columns.Add("facility_code", typeof(string));
+                    dt_OBL.Columns.Add("company_code", typeof(string));
+                    dt_OBL.Columns.Add("action_code", typeof(string));
+                    dt_OBL.Columns.Add("load_type", typeof(string));
+                    dt_OBL.Columns.Add("load_manifest_nbr", typeof(string));
+                    dt_OBL.Columns.Add("trailer_nbr", typeof(string));
+                    dt_OBL.Columns.Add("total_nbr_of_oblpns", typeof(int));
+                    dt_OBL.Columns.Add("total_weight", typeof(Decimal));
+                    dt_OBL.Columns.Add("total_volume", typeof(Decimal));
+                    dt_OBL.Columns.Add("total_shipping_charge", typeof(Decimal));
+                    dt_OBL.Columns.Add("ship_date", typeof(DateTime));
+                    dt_OBL.Columns.Add("ship_date_time", typeof(DateTime));
+
+                    //--------- Procesamos tabla OBS ----------//
+                    dt_OBS.Columns.Add("hdr_group_nbr", typeof(string));
+                    dt_OBS.Columns.Add("facility_code", typeof(string));
+                    dt_OBS.Columns.Add("company_code", typeof(string));
+                    dt_OBS.Columns.Add("load_manifest_nbr", typeof(string));
+                    dt_OBS.Columns.Add("line_nbr", typeof(int));
+                    dt_OBS.Columns.Add("seq_nbr", typeof(int));
+                    dt_OBS.Columns.Add("stop_nbr_of_oblpns", typeof(int));
+                    dt_OBS.Columns.Add("stop_weight", typeof(Decimal));
+                    dt_OBS.Columns.Add("stop_volume", typeof(Decimal));
+                    dt_OBS.Columns.Add("shipto_facility_code", typeof(Decimal));
+                    dt_OBS.Columns.Add("dest_facility_code", typeof(string));
+                    dt_OBS.Columns.Add("order_nbr", typeof(string));
+                    dt_OBS.Columns.Add("ord_date", typeof(DateTime));
+                    dt_OBS.Columns.Add("req_ship_date", typeof(DateTime));
+                    dt_OBS.Columns.Add("dest_dept_nbr", typeof(string));
+                    dt_OBS.Columns.Add("order_hdr_cust_field_1", typeof(string));
+                    dt_OBS.Columns.Add("order_hdr_cust_field_2", typeof(string));
+                    dt_OBS.Columns.Add("order_hdr_cust_field_3", typeof(string));
+                    dt_OBS.Columns.Add("order_seq_nbr", typeof(int));
+                    dt_OBS.Columns.Add("ob_lpn_nbr", typeof(string));
+                    dt_OBS.Columns.Add("item_alternate_code", typeof(string));
+                    dt_OBS.Columns.Add("item_part_a", typeof(string));
+                    dt_OBS.Columns.Add("item_part_b", typeof(string));
+                    dt_OBS.Columns.Add("item_part_c", typeof(string));
+                    dt_OBS.Columns.Add("item_part_d", typeof(string));
+                    dt_OBS.Columns.Add("pre_pack_code", typeof(string));
+                    dt_OBS.Columns.Add("pre_pack_ratio", typeof(Decimal));
+                    dt_OBS.Columns.Add("pre_pack_ratio_seq", typeof(int));
+                    dt_OBS.Columns.Add("hazmat", typeof(Boolean));
+                    dt_OBS.Columns.Add("shipped_uom", typeof(string));
+                    dt_OBS.Columns.Add("shipped_qty", typeof(decimal));
+                    dt_OBS.Columns.Add("ob_lpn_weight", typeof(decimal));
+                    dt_OBS.Columns.Add("ob_lpn_volume", typeof(decimal));
+                    dt_OBS.Columns.Add("ob_lpn_shipping_charge", typeof(decimal));
+                    dt_OBS.Columns.Add("ob_lpn_type", typeof(string));
+                    dt_OBS.Columns.Add("order_hdr_cust_number_1", typeof(int));
+                    dt_OBS.Columns.Add("order_hdr_cust_number_2", typeof(int));
+                    dt_OBS.Columns.Add("order_hdr_cust_number_3", typeof(int));
+                    dt_OBS.Columns.Add("order_hdr_cust_number_4", typeof(int));
+                    dt_OBS.Columns.Add("order_type", typeof(string));
+                    dt_OBS.Columns.Add("ob_lpn_length", typeof(decimal));
+                    dt_OBS.Columns.Add("ob_lpn_width", typeof(decimal));
+                    dt_OBS.Columns.Add("ob_lpn_height", typeof(decimal));
+                    dt_OBS.Columns.Add("erp_fulfillment_line_ref", typeof(int));
+                    dt_OBS.Columns.Add("sales_order_line_ref", typeof(string));
+                    dt_OBS.Columns.Add("sales_order_schedule_ref", typeof(string));
+                    dt_OBS.Columns.Add("tms_order_hdr_ref", typeof(string));
+                    dt_OBS.Columns.Add("tms_order_dtl_ref", typeof(string));
+
+                    //--------- Procesamos tabla SVH ----------//
+                    dt_SVH.Columns.Add("hdr_group_nbr", typeof(string));
+                    dt_SVH.Columns.Add("shipment_nbr", typeof(string));
+                    dt_SVH.Columns.Add("facility_code", typeof(string));
+                    dt_SVH.Columns.Add("company_code", typeof(string));
+                    dt_SVH.Columns.Add("trailer_nbr", typeof(string));
+                    dt_SVH.Columns.Add("shipment_type", typeof(string));
+                    dt_SVH.Columns.Add("origin_info", typeof(string));
+                    dt_SVH.Columns.Add("load_nbr", typeof(string));
+                    dt_SVH.Columns.Add("orig_shipped_units", typeof(decimal));
+                    dt_SVH.Columns.Add("shipped_date", typeof(DateTime));
+                    dt_SVH.Columns.Add("shipment_hdr_cust_field_1", typeof(string));
+                    dt_SVH.Columns.Add("verification_date", typeof(DateTime));
+
+                    //--------- Procesamos tabla SVD ----------//
+                    dt_SVD.Columns.Add("hdr_group_nbr", typeof(string));
+                    dt_SVD.Columns.Add("shipment_nbr", typeof(string));
+                    dt_SVD.Columns.Add("facility_code", typeof(string));
+                    dt_SVD.Columns.Add("company_code", typeof(string));
+                    dt_SVD.Columns.Add("seq_nbr", typeof(int));
+                    dt_SVD.Columns.Add("lpn_nbr", typeof(string));
+                    dt_SVD.Columns.Add("lpn_weight", typeof(decimal));
+                    dt_SVD.Columns.Add("lpn_volume", typeof(decimal));
+                    dt_SVD.Columns.Add("item_alternate_code", typeof(string));
+                    dt_SVD.Columns.Add("item_part_a", typeof(string));
+                    dt_SVD.Columns.Add("item_part_b", typeof(string));
+                    dt_SVD.Columns.Add("item_part_c", typeof(string));
+                    dt_SVD.Columns.Add("item_part_d", typeof(string));
+                    dt_SVD.Columns.Add("pre_pack_code", typeof(string));
+                    dt_SVD.Columns.Add("pre_pack_ratio", typeof(decimal));
+                    dt_SVD.Columns.Add("pre_pack_ratio_seq", typeof(decimal));
+                    dt_SVD.Columns.Add("pre_pack_total_units", typeof(decimal));
+                    dt_SVD.Columns.Add("invn_attr_a", typeof(string));
+                    dt_SVD.Columns.Add("shipped_qty", typeof(decimal));
+                    dt_SVD.Columns.Add("putaway_type", typeof(string));                 // Ultimos
+                    dt_SVD.Columns.Add("shipment_dtl_cust_field_1", typeof(string));    // Ultimos
+                    dt_SVD.Columns.Add("shipment_dtl_cust_field_2", typeof(string));    // Ultimos
+                    dt_SVD.Columns.Add("priority_date", typeof(DateTime));
+                    dt_SVD.Columns.Add("po_nbr", typeof(string));
+                    dt_SVD.Columns.Add("pallet_nbr", typeof(string));
+                    dt_SVD.Columns.Add("received_qty", typeof(decimal));
+                    dt_SVD.Columns.Add("po_seq_nbr", typeof(int));
+
+                    //--------- Procesamos tabla IHT ----------//
+                    dt_IHT.Columns.Add("group_nbr", typeof(int));
+                    dt_IHT.Columns.Add("seq_nbr", typeof(int));
+                    dt_IHT.Columns.Add("facility_code", typeof(string));
+                    dt_IHT.Columns.Add("company_code", typeof(string));
+                    dt_IHT.Columns.Add("activity_code", typeof(int));
+                    dt_IHT.Columns.Add("reason_code", typeof(string)); // Nuevo
+                    dt_IHT.Columns.Add("lock_code", typeof(string)); // Nuevo
+                    dt_IHT.Columns.Add("lpn_nbr", typeof(string));
+                    dt_IHT.Columns.Add("item_code", typeof(string));
+                    dt_IHT.Columns.Add("item_alternate_code", typeof(string));
+                    dt_IHT.Columns.Add("item_part_a", typeof(string));
+                    dt_IHT.Columns.Add("item_part_b", typeof(string));
+                    dt_IHT.Columns.Add("item_part_c", typeof(string));
+                    dt_IHT.Columns.Add("item_part_d", typeof(string));
+                    dt_IHT.Columns.Add("item_description", typeof(string)); // Nuevo
+                    dt_IHT.Columns.Add("shipment_nbr", typeof(string));
+                    dt_IHT.Columns.Add("po_nbr", typeof(string));
+                    dt_IHT.Columns.Add("po_line_nbr", typeof(int));
+                    dt_IHT.Columns.Add("order_seq_nbr", typeof(int));
+                    dt_IHT.Columns.Add("adj_qty", typeof(decimal));
+                    dt_IHT.Columns.Add("lpns_shipped", typeof(string)); // Nuevo
+                    dt_IHT.Columns.Add("units_shipped", typeof(string)); // Nuevo
+                    dt_IHT.Columns.Add("lpns_received", typeof(string)); // Nuevo
+                    dt_IHT.Columns.Add("units_received", typeof(string)); // Nuevo
+                    dt_IHT.Columns.Add("ref_code_1", typeof(string)); // Nuevo
+                    dt_IHT.Columns.Add("ref_value_1", typeof(string));
+                    dt_IHT.Columns.Add("ref_value_2", typeof(string));
+                    dt_IHT.Columns.Add("ref_value_3", typeof(string));
+                    dt_IHT.Columns.Add("create_date", typeof(DateTime));
+                    dt_IHT.Columns.Add("shipment_line_nbr", typeof(int));
+                    dt_IHT.Columns.Add("work_order_seq_nbr", typeof(int));
+                    dt_IHT.Columns.Add("screen_name", typeof(string));
+                    dt_IHT.Columns.Add("module_name", typeof(string));
+                    dt_IHT.Columns.Add("order_type", typeof(string)); // Nuevo
+                    dt_IHT.Columns.Add("shipment_type", typeof(string)); // Nuevo
+                    dt_IHT.Columns.Add("po_type", typeof(string)); // Nuevo
+                    dt_IHT.Columns.Add("billing_location_type", typeof(string)); // Nuevo
                 }
 
-
-
-                //--------- Procesamos tabla OBL ----------//
-                dt_OBL.Columns.Add("hdr_group_nbr", typeof(string));
-                dt_OBL.Columns.Add("facility_code", typeof(string));
-                dt_OBL.Columns.Add("company_code", typeof(string));
-                dt_OBL.Columns.Add("action_code", typeof(string));
-                dt_OBL.Columns.Add("load_type", typeof(string));
-                dt_OBL.Columns.Add("load_manifest_nbr", typeof(string));
-                dt_OBL.Columns.Add("trailer_nbr", typeof(string));
-
-                dt_OBL.Columns.Add("total_nbr_of_oblpns", typeof(int));
-                dt_OBL.Columns.Add("total_weight", typeof(Decimal));
-                dt_OBL.Columns.Add("total_volume", typeof(Decimal));
-                dt_OBL.Columns.Add("total_shipping_charge", typeof(Decimal));
-                dt_OBL.Columns.Add("ship_date", typeof(DateTime));
-                dt_OBL.Columns.Add("ship_date_time", typeof(DateTime));
-
-                for (Int32 i = 0; i < file_TXT_OBL.Length; ++i)
+                if (file_TXT_OBL.Length > 0) //cabecera
                 {
-                    String value = file_TXT_OBL[i].ToString();
-
-                    string fichero = DatosGenerales.rutaMain + @"Work\" + Path.GetFileName(file_TXT_OBL[i]);
-                    string[] lineas = File.ReadAllLines(fichero);
-
-                    foreach (string lin in lineas)
+                    for (Int32 i = 0; i < file_TXT_OBL.Length; ++i)
                     {
-                        string[] campos = lin.Split('|');
-
-                        string whdr_group_nbr = campos[0].ToString();
-                        string wfacility_code = campos[1].ToString();
-                        string wcompany_code = campos[2].ToString();
-                        string waction_code = campos[3].ToString();
-                        string wload_type = campos[4].ToString();
-                        string wload_manifest_nbr = campos[5].ToString();
-                        string wtrailer_nbr = campos[6].ToString();
-
-                        string wtotal_nbr_of_oblpns = campos[14].ToString();
-                        string wtotal_weight = campos[15].ToString();
-                        string wtotal_volume = campos[16].ToString();
-                        string wtotal_shipping_charge = campos[17].ToString();
-
-                        DateTime wship_date = DateTime.ParseExact(campos[18].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
-                        DateTime wship_date_time = DateTime.ParseExact(campos[22].ToString(), "yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
-
-                        dt_OBL.Rows.Add(whdr_group_nbr, wfacility_code, wcompany_code, waction_code, wload_type, wload_manifest_nbr, wtrailer_nbr, wtotal_nbr_of_oblpns, wtotal_weight, wtotal_volume, wtotal_shipping_charge, wship_date, wship_date_time);
-                    }
-                }//for
-
-
-
-                //--------- Procesamos tabla OBS ----------//
-
-                dt_OBS.Columns.Add("hdr_group_nbr", typeof(string));
-                dt_OBS.Columns.Add("facility_code", typeof(string));
-                dt_OBS.Columns.Add("company_code", typeof(string));
-                dt_OBS.Columns.Add("load_manifest_nbr", typeof(string));
-                dt_OBS.Columns.Add("line_nbr", typeof(int));
-                dt_OBS.Columns.Add("seq_nbr", typeof(int));
-                dt_OBS.Columns.Add("stop_nbr_of_oblpns", typeof(int));
-                dt_OBS.Columns.Add("stop_weight", typeof(Decimal));
-                dt_OBS.Columns.Add("stop_volume", typeof(Decimal));
-                dt_OBS.Columns.Add("shipto_facility_code", typeof(Decimal));
-
-                dt_OBS.Columns.Add("dest_facility_code", typeof(string));
-                dt_OBS.Columns.Add("order_nbr", typeof(string));
-                dt_OBS.Columns.Add("ord_date", typeof(DateTime));
-                dt_OBS.Columns.Add("req_ship_date", typeof(DateTime));
-
-                dt_OBS.Columns.Add("order_seq_nbr", typeof(int));
-                dt_OBS.Columns.Add("ob_lpn_nbr", typeof(string));
-                dt_OBS.Columns.Add("item_alternate_code", typeof(string));
-                dt_OBS.Columns.Add("pre_pack_ratio", typeof(Decimal));
-                dt_OBS.Columns.Add("pre_pack_ratio_seq", typeof(int));
-                dt_OBS.Columns.Add("hazmat", typeof(Boolean));
-
-                dt_OBS.Columns.Add("shipped_uom", typeof(string));
-                dt_OBS.Columns.Add("shipped_qty", typeof(decimal));
-                dt_OBS.Columns.Add("ob_lpn_weight", typeof(decimal));
-                dt_OBS.Columns.Add("ob_lpn_volume", typeof(decimal));
-
-
-                dt_OBS.Columns.Add("order_hdr_cust_number_1", typeof(int));
-                dt_OBS.Columns.Add("order_hdr_cust_number_2", typeof(int));
-                dt_OBS.Columns.Add("order_hdr_cust_number_3", typeof(int));
-                dt_OBS.Columns.Add("order_hdr_cust_number_4", typeof(int));
-
-                dt_OBS.Columns.Add("order_type", typeof(string));
-                dt_OBS.Columns.Add("ob_lpn_length", typeof(decimal));
-                dt_OBS.Columns.Add("ob_lpn_width", typeof(decimal));
-                dt_OBS.Columns.Add("ob_lpn_height", typeof(decimal));
-                dt_OBS.Columns.Add("erp_fulfillment_line_ref", typeof(int));
-                dt_OBS.Columns.Add("sales_order_line_ref", typeof(string));
-                dt_OBS.Columns.Add("sales_order_schedule_ref", typeof(string));
-                dt_OBS.Columns.Add("tms_order_hdr_ref", typeof(string));
-                dt_OBS.Columns.Add("tms_order_dtl_ref", typeof(string));
-
-                for (Int32 i = 0; i < file_TXT_OBS.Length; ++i)
-                {
-                    String value = file_TXT_OBS[i].ToString();
-
-                    string fichero2 = DatosGenerales.rutaMain + @"Work\" + Path.GetFileName(file_TXT_OBS[i]);
-                    string[] lineas2 = File.ReadAllLines(fichero2);
-
-                    foreach (string lin in lineas2)
-                    {
-                        string[] campos = lin.Split('|');
-
-                        string whdr_group_nbr = campos[0].ToString();
-                        string wfacility_code = campos[1].ToString();
-                        string wcompany_code = campos[2].ToString();
-                        string wload_manifest_nbr = campos[4].ToString();
-                        string wline_nbr = campos[5].ToString();
-                        string wseq_nbr = campos[6].ToString();
-
-                        string wstop_nbr_of_oblpns = campos[9].ToString();
-                        string wstop_weight = campos[10].ToString();
-                        string wstop_volume = campos[11].ToString();
-                        string wshipto_facility_code = campos[13].ToString();
-
-
-                        string wdest_facility_code = campos[25].ToString();
-                        string worder_nbr = campos[38].ToString();
-
-                        DateTime word_date = DateTime.ParseExact(campos[39].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
-                        DateTime wreq_ship_date = DateTime.ParseExact(campos[41].ToString(), "yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
-
-                        string worder_seq_nbr = campos[54].ToString();
-                        string wob_lpn_nbr = campos[60].ToString();
-                        string witem_alternate_code = campos[61].ToString();
-                        string wpre_pack_ratio = campos[69].ToString();
-                        string wpre_pack_ratio_seq = campos[70].ToString();
-                        string whazmat = campos[75].ToString();
-
-                        string wshipped_uom = campos[76].ToString();
-                        string wshipped_qty = campos[77].ToString();
-                        string wob_lpn_weight = campos[88].ToString();
-                        string wob_lpn_volume = campos[89].ToString();
-
-                        string worder_hdr_cust_number_1 = campos[102].ToString();
-                        string worder_hdr_cust_number_2 = campos[103].ToString();
-                        string worder_hdr_cust_number_3 = campos[104].ToString();
-                        string worder_hdr_cust_number_4 = campos[105].ToString();
-
-                        string worder_type = campos[161].ToString();
-                        string wob_lpn_length = campos[165].ToString();
-                        string wob_lpn_width = campos[166].ToString();
-                        string wob_lpn_height = campos[167].ToString();
-                        string werp_fulfillment_line_ref = campos[181].ToString();
-                        string wsales_order_line_ref = campos[182].ToString();
-                        string wsales_order_schedule_ref = campos[183].ToString();
-                        string wtms_order_hdr_ref = campos[184].ToString();
-                        string wtms_order_dtl_ref = campos[185].ToString();
-
-                        dt_OBS.Rows.Add(whdr_group_nbr, wfacility_code, wcompany_code, wload_manifest_nbr, wline_nbr, wseq_nbr, wstop_nbr_of_oblpns, wstop_weight, wstop_volume, wshipto_facility_code, wdest_facility_code, worder_nbr, word_date, wreq_ship_date, worder_seq_nbr, wob_lpn_nbr, witem_alternate_code, wpre_pack_ratio, wpre_pack_ratio_seq, whazmat, wshipped_uom, wshipped_qty, wob_lpn_weight, wob_lpn_volume, worder_hdr_cust_number_1, worder_hdr_cust_number_2, worder_hdr_cust_number_3, worder_hdr_cust_number_4, worder_type, wob_lpn_length, wob_lpn_width, wob_lpn_height, werp_fulfillment_line_ref, wsales_order_line_ref, wsales_order_schedule_ref, wtms_order_hdr_ref, wtms_order_dtl_ref);
-                    }
-                }//for
-
-
-                //--------- Procesamos tabla SVH ----------//
-
-                dt_SVH.Columns.Add("hdr_group_nbr", typeof(string));
-                dt_SVH.Columns.Add("shipment_nbr", typeof(string));
-                dt_SVH.Columns.Add("facility_code", typeof(string));
-                dt_SVH.Columns.Add("company_code", typeof(string));
-                dt_SVH.Columns.Add("trailer_nbr", typeof(string));
-                dt_SVH.Columns.Add("load_nbr", typeof(string));
-                dt_SVH.Columns.Add("orig_shipped_units", typeof(decimal));
-                dt_SVH.Columns.Add("shipped_date", typeof(DateTime));
-                dt_SVH.Columns.Add("verification_date", typeof(DateTime));
-
-                for (Int32 i = 0; i < file_TXT_SVH.Length; ++i)
-                {
-                    String value = file_TXT_SVH[i].ToString();
-
-                    string fichero = DatosGenerales.rutaMain + @"Work\" + Path.GetFileName(file_TXT_SVH[i]);
-                    string[] lineas = File.ReadAllLines(fichero);
-
-                    foreach (string lin in lineas)
-                    {
-                        string[] campos = lin.Split('|');
-
-                        string whdr_group_nbr = campos[0].ToString();
-                        string wshipment_nbr = campos[1].ToString();
-                        string wfacility_code = campos[2].ToString();
-                        string wcompany_code = campos[3].ToString();
-                        string wtrailer_nbr = campos[4].ToString();
-                        string wload_nbr = campos[7].ToString();
-                        string worig_shipped_units = campos[13].ToString();
-
-                        DateTime wshipped_date = DateTime.ParseExact(campos[14].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
-                        DateTime wverification_date = DateTime.ParseExact(campos[21].ToString(), "yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
-
-                        dt_SVH.Rows.Add(whdr_group_nbr, wshipment_nbr, wfacility_code, wcompany_code, wtrailer_nbr, wload_nbr, worig_shipped_units, wshipped_date, wverification_date);
-                    }
-                }//for
-
-
-
-
-                //--------- Procesamos tabla SVD ----------//
-                dt_SVD.Columns.Add("hdr_group_nbr", typeof(string));
-                dt_SVD.Columns.Add("seq_nbr", typeof(int));
-                dt_SVD.Columns.Add("lpn_nbr", typeof(string));
-                dt_SVD.Columns.Add("lpn_weight", typeof(decimal));
-                dt_SVD.Columns.Add("lpn_volume", typeof(decimal));
-                dt_SVD.Columns.Add("item_alternate_code", typeof(string));
-                dt_SVD.Columns.Add("invn_attr_a", typeof(string));
-                dt_SVD.Columns.Add("shipped_qty", typeof(decimal));
-                dt_SVD.Columns.Add("received_qty", typeof(decimal));
-
-                for (Int32 i = 0; i < file_TXT_SVD.Length; ++i)
-                {
-                    String value = file_TXT_SVD[i].ToString();
-
-                    string fichero = DatosGenerales.rutaMain + @"Work\" + Path.GetFileName(file_TXT_SVD[i]);
-                    string[] lineas = File.ReadAllLines(fichero);
-
-                    foreach (string lin in lineas)
-                    {
-                        string[] campos = lin.Split('|');
-
-                        string whdr_group_nbr = campos[0].ToString();
-                        string wseq_nbr = campos[4].ToString();
-                        string wlpn_nbr = campos[5].ToString();
-                        string wlpn_weight = campos[6].ToString();
-                        string wlpn_volume = campos[7].ToString();
-                        string witem_alternate_code = campos[8].ToString();
-                        string winvn_attr_a = campos[19].ToString();
-                        string wshipped_qty = campos[22].ToString();
-                        string wreceived_qty = campos[27].ToString();
-
-                        dt_SVD.Rows.Add(whdr_group_nbr, wseq_nbr, wlpn_nbr, wlpn_weight, wlpn_volume, witem_alternate_code, winvn_attr_a, wshipped_qty, wreceived_qty);
-                    }
-                }//for
-                
-
-
-                //--------- Procesamos tabla IHT ----------//
-                dt_IHT.Columns.Add("group_nbr", typeof(int));
-                dt_IHT.Columns.Add("seq_nbr", typeof(int));
-                dt_IHT.Columns.Add("facility_code", typeof(string));
-                dt_IHT.Columns.Add("company_code", typeof(string));
-                dt_IHT.Columns.Add("activity_code", typeof(int));
-
-                dt_IHT.Columns.Add("lpn_nbr", typeof(string));
-                dt_IHT.Columns.Add("item_code", typeof(string));
-                dt_IHT.Columns.Add("item_alternate_code", typeof(string));
-                dt_IHT.Columns.Add("shipment_nbr", typeof(string));
-                dt_IHT.Columns.Add("po_nbr", typeof(string));
-
-                dt_IHT.Columns.Add("po_line_nbr", typeof(int));
-                dt_IHT.Columns.Add("order_seq_nbr", typeof(int));
-
-                dt_IHT.Columns.Add("adj_qty", typeof(decimal));
-
-
-                dt_IHT.Columns.Add("ref_value_1", typeof(string));
-                dt_IHT.Columns.Add("ref_value_2", typeof(string));
-                dt_IHT.Columns.Add("ref_value_3", typeof(string));
-
-                dt_IHT.Columns.Add("create_date", typeof(DateTime));
-
-                dt_IHT.Columns.Add("shipment_line_nbr", typeof(int));
-                dt_IHT.Columns.Add("work_order_seq_nbr", typeof(int));
-                dt_IHT.Columns.Add("screen_name", typeof(string));
-                dt_IHT.Columns.Add("module_name", typeof(string));
-
-                for (Int32 i = 0; i < file_TXT_IHT.Length; ++i)
-                {
-                String value = file_TXT_IHT[i].ToString();
-
-                string fichero = DatosGenerales.rutaMain + @"Work\" + Path.GetFileName(file_TXT_IHT[i]);
-                string[] lineas = File.ReadAllLines(fichero);
-
-                    foreach (string lin in lineas)
-                    {
-                    string[] campos = lin.Split('|');
-
-                        string wgroup_nbr = campos[0].ToString();
-                        string wseq_nbr = campos[1].ToString();
-                        string wfacility_code = campos[2].ToString();
-                        string wcompany_code = campos[3].ToString();
-                        string wactivity_code = campos[4].ToString();
-                        string wlpn_nbr = campos[7].ToString();
-                        string witem_code = campos[9].ToString();
-                        string witem_alternate_code = campos[10].ToString();
-
-                        string wshipment_nbr = campos[18].ToString();
-                        string wpo_nbr = campos[20].ToString();
-
-                        string wpo_line_nbr = campos[21].ToString();
-                        string worder_seq_nbr = campos[24].ToString();
-
-                        string wadj_qty = "";
-
-                        if (campos[27].ToString() == "")
+                        try
                         {
-                            wadj_qty = "0";
+                            ArchiOBL = file_TXT_OBL[i].ToString();
+
+                            string fichero = Crear_Carpetas.WORK + Path.GetFileName(file_TXT_OBL[i]);
+                            string[] lineas = File.ReadAllLines(fichero);
+
+                            foreach (string lin in lineas)
+                            {
+                                string[] campos = lin.Split('|');
+
+                                string whdr_group_nbr = campos[0].ToString();
+
+                                string wfacility_code = campos[1].ToString();
+                                string wcompany_code = campos[2].ToString();
+                                string waction_code = campos[3].ToString();
+                                string wload_type = campos[4].ToString();
+                                string wload_manifest_nbr = campos[5].ToString();
+                                string wtrailer_nbr = campos[6].ToString();
+
+                                string wtotal_nbr_of_oblpns = campos[14].ToString();
+                                string wtotal_weight = campos[15].ToString();
+                                string wtotal_volume = campos[16].ToString();
+                                string wtotal_shipping_charge = campos[17].ToString();
+
+                                DateTime wship_date = DateTime.ParseExact(campos[18].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+                                DateTime wship_date_time = DateTime.ParseExact(campos[22].ToString(), "yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+
+                                dt_OBL.Rows.Add(whdr_group_nbr, wfacility_code, wcompany_code, waction_code, wload_type, wload_manifest_nbr, wtrailer_nbr,
+                                wtotal_nbr_of_oblpns, wtotal_weight, wtotal_volume, wtotal_shipping_charge, wship_date, wship_date_time);
+                            }
+
                         }
-                        else
+                        catch (Exception ex)
                         {
-                            wadj_qty = campos[27].ToString();
+                            LogUtil.Graba_Log(Interface, ex.Message.ToString(), true, Path.GetFileName(ArchiOBL));
+                            Crear_Carpetas objCrearCarpetas = new Crear_Carpetas();
+                            objCrearCarpetas.ArchivaInterface("RECYCLER");
+
+                            File.Move(ArchiOBL, Crear_Carpetas.RECYCLER + Path.GetFileName(ArchiOBL)); // si el archivo esta con errores se mueve a la carpeta de reciclaje de archivos
+
                         }
 
-                        string wref_value_1 = campos[33].ToString();
-                        string wref_value_2 = campos[35].ToString();
-                        string wref_value_3 = campos[37].ToString();
+                    }//for
 
-                        DateTime wcreate_date = DateTime.ParseExact(campos[42].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+                }
+                if (file_TXT_OBS.Length > 0) //detalle
+                {
 
-                        string wshipment_line_nbr = campos[46].ToString();
-                        string wwork_order_seq_nbr = campos[53].ToString();
-                        string wscreen_name = campos[54].ToString();
-                        string wmodule_name = campos[55].ToString();
+                    for (Int32 i = 0; i < file_TXT_OBS.Length; ++i)
+                    {
+                        try
+                        {
+                            ArchiOBS = file_TXT_OBS[i].ToString();
 
-                        dt_IHT.Rows.Add(wgroup_nbr, wseq_nbr, wfacility_code, wcompany_code, wactivity_code, wlpn_nbr, witem_code, witem_alternate_code, wshipment_nbr, wpo_nbr, wpo_line_nbr, worder_seq_nbr, wadj_qty, wref_value_1, wref_value_2, wref_value_3, wcreate_date, wshipment_line_nbr, wwork_order_seq_nbr, wscreen_name, wmodule_name);
-                    }
-                }//for
+                            string fichero2 = Crear_Carpetas.WORK + Path.GetFileName(file_TXT_OBS[i]);
+                            string[] lineas2 = File.ReadAllLines(fichero2);
+
+                            foreach (string lin in lineas2)
+                            {
+                                string[] campos = lin.Split('|');
+
+                                string whdr_group_nbr = campos[0].ToString();
+                                string wfacility_code = campos[1].ToString();
+                                string wcompany_code = campos[2].ToString();
+                                string wload_manifest_nbr = campos[4].ToString();
+                                string wline_nbr = campos[5].ToString();
+                                string wseq_nbr = campos[6].ToString();
+
+                                string wstop_nbr_of_oblpns = campos[9].ToString();
+                                string wstop_weight = campos[10].ToString();
+                                string wstop_volume = campos[11].ToString();
+                                string wshipto_facility_code = campos[13].ToString();
 
 
+                                string wdest_facility_code = campos[25].ToString();
+                                string worder_nbr = campos[38].ToString();
 
-            //--------- Insertamos a la Base de Datos -------------//
+                                DateTime word_date = DateTime.ParseExact(campos[39].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+                                DateTime wreq_ship_date = DateTime.ParseExact(campos[41].ToString(), "yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
 
-            using (SqlConnection cn = new SqlConnection(Conexion.conexion))
+                                string wdest_dept_nbr = campos[48].ToString();
+                                string worder_hdr_cust_field_1 = campos[49].ToString();
+                                string worder_hdr_cust_field_2 = campos[50].ToString();
+                                string worder_hdr_cust_field_3 = campos[51].ToString();
+
+                                string worder_seq_nbr = campos[54].ToString();
+                                string wob_lpn_nbr = campos[60].ToString();
+                                string witem_alternate_code = campos[61].ToString();
+                                string witem_part_a = campos[62].ToString();
+                                string witem_part_b = campos[63].ToString();
+                                string witem_part_c = campos[64].ToString();
+                                string witem_part_d = campos[65].ToString();
+                                string wpre_pack_code = campos[68].ToString();
+
+                                string wpre_pack_ratio = campos[69].ToString();
+                                string wpre_pack_ratio_seq = campos[70].ToString();
+                                string whazmat = campos[75].ToString();
+
+                                string wshipped_uom = campos[76].ToString();
+                                string wshipped_qty = campos[77].ToString();
+                                string wob_lpn_weight = campos[88].ToString();
+                                string wob_lpn_volume = campos[89].ToString();
+
+                                string wob_lpn_shipping_charge = campos[90].ToString();
+                                string wob_lpn_type = campos[91].ToString();
+
+                                string worder_hdr_cust_number_1 = campos[102].ToString();
+                                string worder_hdr_cust_number_2 = campos[103].ToString();
+                                string worder_hdr_cust_number_3 = campos[104].ToString();
+                                string worder_hdr_cust_number_4 = campos[105].ToString();
+
+                                string worder_type = campos[161].ToString();
+                                string wob_lpn_length = campos[165].ToString();
+                                string wob_lpn_width = campos[166].ToString();
+                                string wob_lpn_height = campos[167].ToString();
+
+                                int werp_fulfillment_line_ref = 0;
+
+
+                                if (campos[181].ToString() != "")
+                                {
+                                    werp_fulfillment_line_ref = Convert.ToInt32(campos[181]);
+                                }
+
+
+                                string wsales_order_line_ref = campos[182].ToString();
+                                string wsales_order_schedule_ref = campos[183].ToString();
+                                string wtms_order_hdr_ref = campos[184].ToString();
+                                string wtms_order_dtl_ref = campos[185].ToString();
+
+                                dt_OBS.Rows.Add(whdr_group_nbr, wfacility_code, wcompany_code, wload_manifest_nbr, wline_nbr, wseq_nbr, wstop_nbr_of_oblpns,
+                                    wstop_weight, wstop_volume, wshipto_facility_code, wdest_facility_code, worder_nbr, word_date, wreq_ship_date, wdest_dept_nbr, worder_hdr_cust_field_1, worder_hdr_cust_field_2, worder_hdr_cust_field_3,
+                                    worder_seq_nbr, wob_lpn_nbr, witem_alternate_code, witem_part_a, witem_part_b, witem_part_c, witem_part_d,
+                                    wpre_pack_code, wpre_pack_ratio, wpre_pack_ratio_seq, whazmat, wshipped_uom, wshipped_qty, wob_lpn_weight,
+                                    wob_lpn_volume, wob_lpn_shipping_charge, wob_lpn_type, worder_hdr_cust_number_1, worder_hdr_cust_number_2,
+                                    worder_hdr_cust_number_3, worder_hdr_cust_number_4, worder_type, wob_lpn_length, wob_lpn_width, wob_lpn_height,
+                                    werp_fulfillment_line_ref, wsales_order_line_ref, wsales_order_schedule_ref, wtms_order_hdr_ref, wtms_order_dtl_ref);
+                            }
+                        }
+
+                        catch (Exception ex)
+                        {
+                            LogUtil.Graba_Log(Interface, ex.Message.ToString(), true, Path.GetFileName(ArchiOBS));
+                            Crear_Carpetas objCrearCarpetas = new Crear_Carpetas();
+                            objCrearCarpetas.ArchivaInterface("RECYCLER");
+
+                            File.Move(ArchiOBS, Crear_Carpetas.RECYCLER + Path.GetFileName(ArchiOBS.ToString())); // si el archivo esta con errores se mueve a la carpeta de reciclaje de archivos
+
+                        }
+
+                    }//for
+
+                }
+                if (file_TXT_SVH.Length > 0) //cabecera
+
+                {
+
+                    for (Int32 i = 0; i < file_TXT_SVH.Length; ++i)
+                    {
+
+                        try
+                        {
+                            ArchiSVH = file_TXT_SVH[i].ToString();
+
+                            string fichero = Crear_Carpetas.WORK + Path.GetFileName(file_TXT_SVH[i]);
+                            string[] lineas = File.ReadAllLines(fichero);
+
+                            foreach (string lin in lineas)
+                            {
+                                string[] campos = lin.Split('|');
+
+                                string whdr_group_nbr = campos[0].ToString();
+                                string wshipment_nbr = campos[1].ToString();
+                                string wfacility_code = campos[2].ToString();
+                                string wcompany_code = campos[3].ToString();
+                                string wtrailer_nbr = campos[4].ToString();
+
+                                string wshipment_type = campos[6].ToString();
+                                string worigin_info = campos[11].ToString();
+
+                                string wload_nbr = campos[7].ToString();
+                                string worig_shipped_units = campos[13].ToString();
+                                DateTime wshipped_date = DateTime.ParseExact(campos[14].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+
+                                string wshipment_hdr_cust_field_1 = campos[16].ToString();
+                                DateTime wverification_date = DateTime.ParseExact(campos[21].ToString(), "yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+
+                                dt_SVH.Rows.Add(whdr_group_nbr, wshipment_nbr, wfacility_code, wcompany_code, wtrailer_nbr, wshipment_type, worigin_info, wload_nbr,
+                                worig_shipped_units, wshipped_date, wshipment_hdr_cust_field_1, wverification_date);
+                            }
+
+                        }
+                        catch (Exception ex)
+                        {
+                            LogUtil.Graba_Log(Interface, ex.Message.ToString(), true, Path.GetFileName(ArchiSVH.ToString()));
+                            Crear_Carpetas objCrearCarpetas = new Crear_Carpetas();
+                            objCrearCarpetas.ArchivaInterface("RECYCLER");
+
+                            File.Move(ArchiSVH.ToString(), Crear_Carpetas.RECYCLER + Path.GetFileName(ArchiSVH.ToString())); // si el archivo esta con errores se mueve a la carpeta de reciclaje de archivos
+
+                        }
+                    }//for
+
+                }
+                if (file_TXT_SVD.Length > 0) //detalle
+                {
+
+                    for (Int32 i = 0; i < file_TXT_SVD.Length; ++i)
+                    {
+                        try
+                        {
+                            ArchiSVD = file_TXT_SVD[i].ToString();
+
+                            string fichero = Crear_Carpetas.WORK + Path.GetFileName(file_TXT_SVD[i]);
+                            string[] lineas = File.ReadAllLines(fichero);
+
+                            foreach (string lin in lineas)
+                            {
+                                string[] campos = lin.Split('|');
+                                string whdr_group_nbr = campos[0].ToString();
+                                string wshipment_nbr = campos[1].ToString();
+                                string wfacility_code = campos[2].ToString();
+                                string wcompany_code = campos[3].ToString();
+                                string wseq_nbr = campos[4].ToString();
+                                string wlpn_nbr = campos[5].ToString();
+                                string wlpn_weight = campos[6].ToString();
+                                string wlpn_volume = campos[7].ToString();
+                                string witem_alternate_code = campos[8].ToString();
+
+                                string witem_part_a = campos[9].ToString();
+                                string witem_part_b = campos[10].ToString();
+                                string witem_part_c = campos[11].ToString();
+                                string witem_part_d = campos[12].ToString();
+
+                                string wpre_pack_code = campos[15].ToString();
+                                string wpre_pack_ratio = campos[16].ToString();
+                                string wpre_pack_ratio_seq = campos[17].ToString();
+                                string wpre_pack_total_units = campos[18].ToString();
+                                string winvn_attr_a = campos[19].ToString();
+
+                                string wshipped_qty = campos[22].ToString();
+
+                                string wputaway_type = campos[26].ToString();
+                                string wshipment_dtl_cust_field_1 = campos[31].ToString();
+                                string wshipment_dtl_cust_field_2 = campos[32].ToString();
+
+                                DateTime wpriority_date = Convert.ToDateTime("1900/01/01");
+
+
+                                if (campos[23].ToString() != "")
+                                {
+                                    wpriority_date = DateTime.ParseExact(campos[23].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+                                }
+
+
+                                string wpo_nbr = campos[24].ToString();
+                                string wpallet_nbr = campos[25].ToString();
+
+                                string wreceived_qty = campos[27].ToString();
+
+                                int wpo_seq_nbr = 0;
+                                if (campos[37].ToString() != "")
+                                {
+                                    wpo_seq_nbr = Convert.ToInt32(campos[37]);
+                                }
+
+                                dt_SVD.Rows.Add(whdr_group_nbr, wshipment_nbr, wfacility_code, wcompany_code, wseq_nbr, wlpn_nbr, wlpn_weight, wlpn_volume,
+                                    witem_alternate_code, witem_part_a, witem_part_b, witem_part_c, witem_part_d, wpre_pack_code, wpre_pack_ratio,
+                                    wpre_pack_ratio_seq, wpre_pack_total_units, winvn_attr_a, wshipped_qty, wputaway_type, wshipment_dtl_cust_field_1,
+                                    wshipment_dtl_cust_field_2, wpriority_date, wpo_nbr, wpallet_nbr, wreceived_qty, wpo_seq_nbr);
+                            }
+
+                        }
+                        catch (Exception ex)
+                        {
+                            LogUtil.Graba_Log(Interface, ex.Message.ToString(), true, Path.GetFileName(ArchiSVD));
+                            Crear_Carpetas objCrearCarpetas = new Crear_Carpetas();
+                            objCrearCarpetas.ArchivaInterface("RECYCLER");
+
+                            File.Move(ArchiSVD, Crear_Carpetas.RECYCLER + Path.GetFileName(ArchiSVD)); // si el archivo esta con errores se mueve a la carpeta de reciclaje de archivos
+                        }
+
+                    }//for
+
+                }
+                if (file_TXT_IHT.Length > 0)
+                {
+
+                    for (Int32 i = 0; i < file_TXT_IHT.Length; ++i)
+                    {
+                        try
+                        {
+                            ArchiIHT = file_TXT_IHT[i].ToString();
+
+                            string fichero = Crear_Carpetas.WORK + Path.GetFileName(file_TXT_IHT[i]);
+                            string[] lineas = File.ReadAllLines(fichero);
+
+                            foreach (string lin in lineas)
+                            {
+                                string[] campos = lin.Split('|');
+
+                                string wgroup_nbr = campos[0].ToString();
+                                string wseq_nbr = campos[1].ToString();
+                                string wfacility_code = campos[2].ToString();
+                                string wcompany_code = campos[3].ToString();
+                                string wactivity_code = campos[4].ToString();
+
+                                string wreason_code = campos[5].ToString();
+                                string wlock_code = campos[6].ToString();
+
+                                string wlpn_nbr = campos[7].ToString();
+                                string witem_code = campos[9].ToString();
+                                string witem_alternate_code = campos[10].ToString();
+
+                                string witem_part_a = campos[11].ToString();
+                                string witem_part_b = campos[12].ToString();
+                                string witem_part_c = campos[13].ToString();
+                                string witem_part_d = campos[14].ToString();
+
+                                string witem_description = campos[17].ToString();
+
+                                string wshipment_nbr = campos[18].ToString();
+                                string wpo_nbr = campos[20].ToString();
+
+                                string wpo_line_nbr = campos[21].ToString();
+                                string worder_seq_nbr = campos[24].ToString();
+
+                                string wadj_qty = "";
+
+                                if (campos[27].ToString() == "")
+                                {
+                                    wadj_qty = "0";
+                                }
+                                else
+                                {
+                                    wadj_qty = campos[27].ToString();
+                                }
+
+                                string wlpns_shipped = campos[28].ToString();
+                                string wunits_shipped = campos[29].ToString();
+                                string wlpns_received = campos[30].ToString();
+                                string wunits_received = campos[31].ToString();
+                                string wref_code_1 = campos[32].ToString();
+
+                                string wref_value_1 = campos[33].ToString();
+                                string wref_value_2 = campos[35].ToString();
+                                string wref_value_3 = campos[37].ToString();
+
+                                DateTime wcreate_date = DateTime.ParseExact(campos[42].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+
+                                string wshipment_line_nbr = campos[46].ToString();
+                                string wwork_order_seq_nbr = campos[53].ToString();
+                                string wscreen_name = campos[54].ToString();
+                                string wmodule_name = campos[55].ToString();
+
+                                string worder_type = campos[70].ToString();
+                                string wshipment_type = campos[71].ToString();
+                                string wpo_type = campos[72].ToString();
+                                string wbilling_location_type = campos[73].ToString();
+
+                                dt_IHT.Rows.Add(wgroup_nbr, wseq_nbr, wfacility_code, wcompany_code, wactivity_code, wreason_code, wlock_code,
+                                    wlpn_nbr, witem_code, witem_alternate_code, witem_part_a, witem_part_b, witem_part_c, witem_part_d, witem_description,
+                                    wshipment_nbr, wpo_nbr, wpo_line_nbr, worder_seq_nbr, wadj_qty, wlpns_shipped, wunits_shipped, wlpns_received,
+                                    wunits_received, wref_code_1, wref_value_1, wref_value_2, wref_value_3, wcreate_date, wshipment_line_nbr,
+                                    wwork_order_seq_nbr, wscreen_name, wmodule_name, worder_type, wshipment_type, wpo_type, wbilling_location_type);
+                            }
+
+                        }
+                        catch (Exception ex)
+                        {
+
+                            LogUtil.Graba_Log(Interface, ex.Message.ToString(), true, Path.GetFileName(ArchiIHT));
+                            Crear_Carpetas objCrearCarpetas = new Crear_Carpetas();
+                            objCrearCarpetas.ArchivaInterface("RECYCLER");
+
+                            File.Move(ArchiIHT, Crear_Carpetas.RECYCLER + Path.GetFileName(ArchiIHT)); // si el archivo esta con errores se mueve a la carpeta de reciclaje de archivos
+                        }
+
+
+                    }//for
+                }
+
+                //--------- Insertamos a la Base de Datos -------------//
+
+                using (SqlConnection cn = new SqlConnection(Conexion.conexion))
                 {
                     try
                     {
@@ -506,45 +727,70 @@ namespace CapaInterface
                     catch (Exception exc)
                     {
                         error = exc.Message;
+                        exito = false;
                     }
 
                     if (cn != null)
                         if (cn.State == ConnectionState.Open) cn.Close();
                 }
+                exito = true;
             }
             catch (Exception exc)
             {
                 error = exc.Message;
+                LogUtil.Graba_Log(Interface, "ERROR: " + error, true, "");
                 exito = false;
             }
-
-            exito = true;
             return exito;
         }
 
-        private bool Archiva_TXT(string[] Arr_OBL, string[] Arr_OBS, string[] Arr_SVH, string[] Arr_SVD, string[] Arr_IHT)
+        private bool Archiva_TXT(string[] Arr_OBL, string[] Arr_OBS, string[] Arr_SVH, string[] Arr_SVD, string[] Arr_IHT, string ruta)
         {
             bool exito = false;
+            string path;
 
-            string path = Path.Combine(DatosGenerales.rutaMain, @"BACKUP\");
+
+            //string path = Path.Combine(Crear_Carpetas.BACKUP + @ruta);
+            if (ruta == "\\50001\\")
+            {
+                path = Path.Combine(Crear_Carpetas.C50001_output);
+            }
+            else
+            {
+                path = Path.Combine(Crear_Carpetas.C50003_output);
+            }
+
             if (!Directory.Exists(path))
             {
                 Directory.CreateDirectory(path);
             }
 
-
-            //--------- Procesamos tabla OBL ----------//
-            for (Int32 i = 0; i < Arr_OBL.Length; ++i)
+            if (Arr_OBL != null || Arr_OBL.Length == 0)
+            {
+                //--------- Procesamos tabla OBL ----------//
+                for (Int32 i = 0; i < Arr_OBL.Length; ++i)
                 {
                     String Arch_OBL = Arr_OBL[i].ToString();
 
                     if (File.Exists(Arch_OBL))
                     {
                         if (File.Exists(path + Path.GetFileName(Arch_OBL))) File.Delete(path + Path.GetFileName(Arch_OBL));
-                        File.Move(Arch_OBL, path + Path.GetFileName(Arch_OBL)); // Try to move
+
+                        if (Path.GetFileName(Arch_OBL).Substring(9, 5) == "50001")
+                        {
+                            File.Move(Arch_OBL, Crear_Carpetas.C50001_output + Path.GetFileName(Arch_OBL)); // Mueve al 50001 
+                        }
+                        else
+                        {
+                            File.Move(Arch_OBL, Crear_Carpetas.C50003_output + Path.GetFileName(Arch_OBL)); // Mueve al 50003
+                        }
                     }
                 }//For
+            }
 
+
+            if (Arr_OBS != null)
+            {
                 //--------- Procesamos tabla OBS ----------//
                 for (Int32 i = 0; i < Arr_OBS.Length; ++i)
                 {
@@ -553,11 +799,21 @@ namespace CapaInterface
                     if (File.Exists(Arch_OBS))
                     {
                         if (File.Exists(path + Path.GetFileName(Arch_OBS))) File.Delete(path + Path.GetFileName(Arch_OBS));
-                        File.Move(Arch_OBS, path + Path.GetFileName(Arch_OBS)); // Try to move
+
+                        if (Path.GetFileName(Arch_OBS).Substring(9, 5) == "50001")
+                        {
+                            File.Move(Arch_OBS, Crear_Carpetas.C50001_output + Path.GetFileName(Arch_OBS)); // Mueve al 50001
+                        }
+                        else
+                        {
+                            File.Move(Arch_OBS, Crear_Carpetas.C50003_output + Path.GetFileName(Arch_OBS)); // Mueve al 50003
+                        }
                     }
                 }//For
+            }
 
-
+            if (Arr_SVH != null)
+            {
                 //--------- Procesamos tabla SVH ----------//
                 for (Int32 i = 0; i < Arr_SVH.Length; ++i)
                 {
@@ -566,11 +822,21 @@ namespace CapaInterface
                     if (File.Exists(Arch_SVH))
                     {
                         if (File.Exists(path + Path.GetFileName(Arch_SVH))) File.Delete(path + Path.GetFileName(Arch_SVH));
-                        File.Move(Arch_SVH, path + Path.GetFileName(Arch_SVH)); // Try to move
+
+                        if (Path.GetFileName(Arch_SVH).Substring(9, 5) == "50001")
+                        {
+                            File.Move(Arch_SVH, Crear_Carpetas.C50001_output + Path.GetFileName(Arch_SVH)); // Mueve al 50001
+                        }
+                        else
+                        {
+                            File.Move(Arch_SVH, Crear_Carpetas.C50003_output + Path.GetFileName(Arch_SVH)); // Mueve al 50003
+                        }
                     }
                 }//For
+            }
 
-
+            if (Arr_SVD != null)
+            {
                 //--------- Procesamos tabla SVD ----------//
                 for (Int32 i = 0; i < Arr_SVD.Length; ++i)
                 {
@@ -579,11 +845,21 @@ namespace CapaInterface
                     if (File.Exists(Arch_SVD))
                     {
                         if (File.Exists(path + Path.GetFileName(Arch_SVD))) File.Delete(path + Path.GetFileName(Arch_SVD));
-                        File.Move(Arch_SVD, path + Path.GetFileName(Arch_SVD)); // Try to move
+                        if (Path.GetFileName(Arch_SVD).Substring(9, 5) == "50001")
+                        {
+                            File.Move(Arch_SVD, Crear_Carpetas.C50001_output + Path.GetFileName(Arch_SVD)); // Mueve al 50001
+                        }
+                        else
+                        {
+                            File.Move(Arch_SVD, Crear_Carpetas.C50003_output + Path.GetFileName(Arch_SVD)); // Mueve al 50003
+                        }
+
                     }
                 }//For
+            }
 
-
+            if (Arr_IHT != null)
+            {
                 //--------- Procesamos tabla IHT ----------//
                 for (Int32 i = 0; i < Arr_IHT.Length; ++i)
                 {
@@ -592,63 +868,84 @@ namespace CapaInterface
                     if (File.Exists(Arch_IHT))
                     {
                         if (File.Exists(path + Path.GetFileName(Arch_IHT))) File.Delete(path + Path.GetFileName(Arch_IHT));
-                        File.Move(Arch_IHT, path + Path.GetFileName(Arch_IHT)); // Try to move
+                        if (Path.GetFileName(Arch_IHT).Substring(9, 5) == "50001")
+                        {
+                            File.Move(Arch_IHT, Crear_Carpetas.C50001_output + Path.GetFileName(Arch_IHT)); // Mueve al 50001
+                        }
+                        else
+                        {
+                            File.Move(Arch_IHT, Crear_Carpetas.C50003_output + Path.GetFileName(Arch_IHT)); // Mueve al 50003
+                        }
                     }
                 }//For
+            }
 
-                exito = true;
+            exito = true;
             return exito;
         }
 
-        private bool Borra_FTP(string[] Arr_OBL, string[] Arr_OBS, string[] Arr_SVH, string[] Arr_SVD, string[] Arr_IHT)
+        private bool Borra_FTP(string[] Arr_OBL, string[] Arr_OBS, string[] Arr_SVH, string[] Arr_SVD, string[] Arr_IHT, string ruta)
         {
             bool exito = false;
+
+            ruta = ruta.Replace("\\", "");
 
             using (Session session = new Session())
             {
                 session.Open(sessionOptions); // Connect
-                //--------- Procesamos tabla OBL ----------//
-                for (Int32 i = 0; i < Arr_OBL.Length; ++i)
+
+                if (Arr_OBL != null)
                 {
-                    String Arch_OBL = Arr_OBL[i].ToString();
-                    session.RemoveFiles("/data/730/output/" + Path.GetFileName(Arch_OBL)); // Borramos el archivo del FPT
-                }//For
+                    //--------- Procesamos tabla OBL ----------//
+                    for (Int32 i = 0; i < Arr_OBL.Length; ++i)
+                    {
+                        String Arch_OBL = Arr_OBL[i].ToString();
+                        session.RemoveFiles("/data/730/" + ruta + "/output/" + Path.GetFileName(Arch_OBL)); // Borramos el archivo del FPT
+                    }//For
+                }
 
-
-
-                //--------- Procesamos tabla OBS ----------//
-                for (Int32 i = 0; i < Arr_OBS.Length; ++i)
+                if (Arr_OBS != null)
                 {
-                    String Arch_OBS = Arr_OBS[i].ToString();
-                    session.RemoveFiles("/data/730/output/" + Path.GetFileName(Arch_OBS)); // Borramos el archivo del FPT
-                }//For
+                    //--------- Procesamos tabla OBS ----------//
+                    for (Int32 i = 0; i < Arr_OBS.Length; ++i)
+                    {
+                        String Arch_OBS = Arr_OBS[i].ToString();
+                        session.RemoveFiles("/data/730/" + ruta + "/output/" + Path.GetFileName(Arch_OBS)); // Borramos el archivo del FPT
+                    }//For
+                }
 
-
-                //--------- Procesamos tabla SVH ----------//
-                for (Int32 i = 0; i < Arr_SVH.Length; ++i)
+                if (Arr_SVH != null)
                 {
-                    String Arch_SVH = Arr_SVH[i].ToString();
-                    session.RemoveFiles("/data/730/output/" + Path.GetFileName(Arch_SVH)); // Borramos el archivo del FPT
-                }//For
+                    //--------- Procesamos tabla SVH ----------//
+                    for (Int32 i = 0; i < Arr_SVH.Length; ++i)
+                    {
+                        String Arch_SVH = Arr_SVH[i].ToString();
+                        session.RemoveFiles("/data/730/" + ruta + "/output/" + Path.GetFileName(Arch_SVH)); // Borramos el archivo del FPT
+                    }//For
+                }
 
-
-                //--------- Procesamos tabla SVD ----------//
-                for (Int32 i = 0; i < Arr_SVD.Length; ++i)
+                if (Arr_SVD != null)
                 {
-                    String Arch_SVD = Arr_SVD[i].ToString();
-                    session.RemoveFiles("/data/730/output/" + Path.GetFileName(Arch_SVD)); // Borramos el archivo del FPT
-                    //}
-                }//For
+                    //--------- Procesamos tabla SVD ----------//
+                    for (Int32 i = 0; i < Arr_SVD.Length; ++i)
+                    {
+                        String Arch_SVD = Arr_SVD[i].ToString();
+                        session.RemoveFiles("/data/730/" + ruta + "/output/" + Path.GetFileName(Arch_SVD)); // Borramos el archivo del FPT
+                                                                                                            //}
+                    }//For
+                }
 
-
-                //--------- Procesamos tabla IHT ----------//
-                for (Int32 i = 0; i < Arr_IHT.Length; ++i)
+                if (Arr_IHT != null)
                 {
-                    String Arch_IHT = Arr_IHT[i].ToString();
-                    session.RemoveFiles("/data/730/output/" + Path.GetFileName(Arch_IHT)); // Borramos el archivo del FPT
-                }//For
+                    //--------- Procesamos tabla IHT ----------//
+                    for (Int32 i = 0; i < Arr_IHT.Length; ++i)
+                    {
+                        String Arch_IHT = Arr_IHT[i].ToString();
+                        session.RemoveFiles("/data/730/" + ruta + "/output/" + Path.GetFileName(Arch_IHT)); // Borramos el archivo del FPT
+                    }//For
+                }
             }//using
-                exito = true;
+            exito = true;
             return exito;
         }
 
