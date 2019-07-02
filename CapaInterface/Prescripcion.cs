@@ -24,6 +24,8 @@ namespace CapaInterface
     //    public string MensajeError { get; set; }
     //    public DataSet DatosDevueltos { get; set; }
     //}
+
+
     public class Prescripcion
     {
 
@@ -32,7 +34,7 @@ namespace CapaInterface
         string wcodcia = DatosGenerales.codcia;
         string waction = "CREATE";
         string winterface = "PRESC";
-        //int wdiasatras = 57;
+        int wdiasatras = 57;
 
         //************** Datatables globales para guardar las prescripciones obtenidas
         DataTable dt_cab_retail = null;
@@ -53,10 +55,26 @@ namespace CapaInterface
 
             try
             {
-                //verifica si existe la carpeta WMS antes de empezar a crear los archivo , si no existe lo crea
-                Crear_Carpetas objCreaCarpeta = new Crear_Carpetas();
-                objCreaCarpeta.ArchivaInterface("WMS");
-                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M001"], false, "");
+
+                //var resultadoObtPresc = Obtiene_Prescrip();
+                //if (!resultadoObtPres.Exito)
+                //{
+                //    //GraboLog
+                //    //Cierro conexion
+                //    return;
+                //}
+
+                //var resultadoGeneraFileTxt = Genera_FileTXT();
+                //if (!resultadoGeneraFileTxt.Exito)
+                //{
+                //    //GraboLog
+                //    //Cierro conexion
+                //    return;
+                //}
+
+
+                LogUtil.Graba_Log(winterface, "******* INICIO PROCESO *******");
+
 
                 if (Obtiene_Prescrip())
                 {
@@ -76,33 +94,36 @@ namespace CapaInterface
                                     exito = true;
                                 }
 
-                                Archiva_TXT(wcd);
+                                Archiva_TXT();
                             }
                         }
                     }
 
                 }
 
+
                 if (exito)
                 {
-                    LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M002"], false, "");
+                    LogUtil.Graba_Log(winterface, "SE PROCESO OK"); // OJO POR MIENTRAS
                 }
                 else
                 {
-                    LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M003"], true, "");
+                    LogUtil.Graba_Log(winterface, "NO PROCESO NADA"); // OJO POR MIENTRAS
                 }
+
 
             }
             catch (Exception ex)
             {
-                LogUtil.Graba_Log(winterface, winterface + " ERROR: " + ex.ToString(), true, "");
+                LogUtil.Graba_Log(winterface, "ERROR: " + ex.ToString());
             }
             finally
             {
-                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M004"].ToString(), false, "");
+                LogUtil.Graba_Log(winterface, "******* FIN PROCESO *******");
             }
         }
         //****************************************************************************
+
 
 
         /************** Actualiza_Flag_Prescrip
@@ -121,32 +142,27 @@ namespace CapaInterface
             }
             catch (Exception ex)
             {
-                LogUtil.Graba_Log(winterface, winterface + " ERROR: " + ex.ToString(), true, "");
+                LogUtil.Graba_Log(winterface, "ERROR: " + ex.ToString());
             }
 
             return (exito1 || exito2);
 
         }
 
+
         private bool Actualiza_Flag(string retail_noretail)
         {
+
             bool exito = false;
             string cade = "";
             var listaCade = new List<string>();
-            string desretail = ""; // 5 : retail / 6 no retail
 
             DataTable dtaux = null;
 
             if (retail_noretail == "5")
-            {
-                dtaux = dt_cab_retail;
-                desretail = "Retail";
-            }
+            { dtaux = dt_cab_retail; }
             else
-            {
-                dtaux = dt_cab_noretail;
-                desretail = "No Retail";
-            }
+            { dtaux = dt_cab_noretail; }
 
             // OJO FALTA EVALUAR new System.Data.OleDb.OleDbCommand("set enginebehavior 80", dbConn).ExecuteNonQuery();
 
@@ -172,7 +188,7 @@ namespace CapaInterface
                         cade = "";
                     }
                 }
-
+                
                 cade = cade.TrimEnd(',');
                 listaCade.Add(cade);
 
@@ -186,6 +202,19 @@ namespace CapaInterface
                 using (OleDbConnection dbConn = new OleDbConnection(conex))
                 {
                     dbConn.Open();
+
+                    //using (OleDbCommand cmd = dbConn.CreateCommand())
+                    //{
+                    //    cmd.CommandText = "=SYS(3055, 440)";
+                    //    cmd.ExecuteNonQuery();
+                    //}
+                    //new System.Data.OleDb.OleDbCommand("SYS(3055, 2040)", dbConn).ExecuteNonQuery();
+
+                    //cmd.CommandText = "SYS(3055, 2040)";
+                    //cmd.ExecuteNonQuery();
+
+                    //string valor = fila["Prescrip"].ToString();
+                    //string sql_upd = "UPDATE FVPRESP SET PRE_RECNO=1 WHERE PRE_TIEND='" + fila["Pre_tiend"] + "' AND PRE_ARTIC='" + fila["Pre_artic"] + "' AND PRE_CALID='" + fila["Pre_calid"] + "' AND PRE_ARTIC='2811304' AND PRE_TIEND='50522'";
 
                     string sql_upd = "";
 
@@ -202,7 +231,7 @@ namespace CapaInterface
                         System.Data.OleDb.OleDbCommand com_upd = new System.Data.OleDb.OleDbCommand(sql_upd, dbConn);
                         com_upd.ExecuteNonQuery();
                         int count = caden.Count(f => f == ',');
-                        LogUtil.Graba_Log(winterface, winterface + " : Se actualizó para canal " + desretail + " Documentos: " + Convert.ToString(count + 1), false, "");
+                        LogUtil.Graba_Log(winterface, "UPDATE " + retail_noretail + " Docum: " + Convert.ToString(count+1));
                     }
 
                 }
@@ -251,16 +280,15 @@ namespace CapaInterface
         private bool Envia_FTP(string wcd)
         {
             bool exito1 = false;
-            bool exito2 = false;
-
+            bool exito2 = false;          
 
             exito1 = FTPUtil.Send_FTP_WMS(fileTXTc, fileTXTc, wcd);
-            exito2 = FTPUtil.Send_FTP_WMS(fileTXTd, fileTXTd, wcd);
+            exito2 = FTPUtil.Send_FTP_WMS(fileTXTd, fileTXTd, wcd);                     
 
             if (exito1 && exito2)
-            { LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M006"].ToString(), false, ""); }
+            { LogUtil.Graba_Log(winterface, "ENVIA FTP OK "); }
             else
-            { LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M007"].ToString(), true, ""); }
+            { LogUtil.Graba_Log(winterface, "ENVIA FTP ERROR "); }
 
             return (exito1 && exito2);
         }
@@ -277,28 +305,21 @@ namespace CapaInterface
 
             string fechor = DateTime.Now.ToString("yyyyMMddHHmmss") + ".TXT";
 
-            fileTXTc = Path.Combine(Crear_Carpetas.WORK, "ORH_PRES_" + fechor);
-            fileTXTd = Path.Combine(Crear_Carpetas.WORK, "ORD_PRES_" + fechor);
+            fileTXTc = Path.Combine(DatosGenerales.rutaMain, "ORH_"+fechor);
+            fileTXTd = Path.Combine(DatosGenerales.rutaMain, "ORD_"+fechor);
 
             // Eliminar archivos ORH, ORD.TXT
             try
             {
-                if (File.Exists(fileTXTc)) File.Delete(fileTXTc);
-                if (File.Exists(fileTXTd)) File.Delete(fileTXTd);
-                //var dir = new DirectoryInfo(Crear_Carpetas.WORK);
-                //foreach (var file in dir.EnumerateFiles("ORH_*.TXT"))
-                //{
-                //    file.Delete();
-                //}
-                //foreach (var file in dir.EnumerateFiles("ORD_*.TXT"))
-                //{
-                //    file.Delete();
-                //}
-
+                var dir = new DirectoryInfo(DatosGenerales.rutaMain);
+                foreach (var file in dir.EnumerateFiles("OR*.TXT"))
+                {
+                    file.Delete();
+                }
             }
-            catch (Exception ex)
+            catch
             {
-                LogUtil.Graba_Log(winterface, winterface + " ERROR: " + ex.ToString(), true, "");
+                // omitido
             }
 
             //if (File.Exists(fileTXTc)) { File.Delete(fileTXTc); }
@@ -318,11 +339,14 @@ namespace CapaInterface
 
             if (dt_cab_retail == null || dt_cab_retail.Rows.Count == 0)
             { return false; }
-
+          
             string delimited = "|";
             bool exito = false;
             string zcd = "";
             var str = new StringBuilder();
+
+            //int numberOfRecords = dt_cab_retail.AsEnumerable().Where(x => x["cgud_almac"].ToString() == wcd).ToList().Count;
+            //if (numberOfRecords == 0) return false;
 
             foreach (DataRow datarow in dt_cab_retail.Rows)
             {
@@ -332,8 +356,8 @@ namespace CapaInterface
                     continue;
 
                 str.Append(datarow["cgud_gudis"].ToString() + delimited);        // Numero de orden de despacho
-                str.Append(zcd + delimited);                                     // Facility code
-                str.Append(wcodcia + delimited);                                 // Cod Cia
+                str.Append(zcd + delimited);  // Facility code
+                str.Append(wcodcia + delimited);                                  // Cod Cia
                 str.Append(datarow["cgud_gudis"].ToString() + delimited);        // Numero de orden de despacho
                 str.Append(datarow["cgud_canal"].ToString() + datarow["cgud_almac"].ToString() + delimited);  // Order Type ejemplo: 5K
                 str.Append(Convert.ToDateTime(datarow["cgud_femis"]).ToString("yyyyMMdd") + delimited);        // Fecha emision
@@ -375,8 +399,8 @@ namespace CapaInterface
                 str.Append("\r\n");
             }
 
+            if (File.Exists(fileTXTc)) File.Delete(fileTXTc); 
             if (str.Length == 0) return false;
-            //if (File.Exists(fileTXTc)) { File.Delete(fileTXTc); }
             File.WriteAllText(fileTXTc, str.ToString());
 
 
@@ -403,7 +427,7 @@ namespace CapaInterface
                     correlativo = 0;
                     grupo = datarow["dgud_gudis"].ToString();
                 }
-
+                                
 
                 for (int xi = 0; xi < 12; xi++)
                 {
@@ -424,8 +448,8 @@ namespace CapaInterface
                             { keyitem = datarow["dgud_artic"].ToString() + datarow["dgud_calid"].ToString() + pos + DatosGenerales.CodRetail; }
                             else
                             { keyitem = datarow["dgud_artic"].ToString() + datarow["dgud_calid"].ToString() + datarow["dgud_cpack"].ToString() + DatosGenerales.CodRetail; }
-
-
+                                                        
+                            
                             str.Append(datarow["dgud_gudis"].ToString() + delimited);        // Numero de orden de despacho
                             str.Append(DatosGenerales.Obt_CDxAlm(datarow["cgud_almac"].ToString()) + delimited);  // Facility code
                             str.Append(wcodcia + delimited);                                  // Cod Cia
@@ -453,13 +477,14 @@ namespace CapaInterface
 
             }
 
-            //if (File.Exists(fileTXTd)) { File.Delete(fileTXTd); }
+            if (File.Exists(fileTXTd)) { File.Delete(fileTXTd); }
             File.WriteAllText(fileTXTd, str.ToString());
 
             exito = (File.Exists(fileTXTc) && File.Exists(fileTXTd));
             return exito;
 
         }
+
 
         private bool Genera_FileTXT_NoRetail(string wcd)
         {
@@ -523,8 +548,7 @@ namespace CapaInterface
 
             }
 
-            if (str.Length == 0) return false;
-            File.AppendAllText(fileTXTc, str.ToString());
+            File.AppendAllText(fileTXTc, str.ToString());     
 
 
             // DETALLE NORETAIL
@@ -545,11 +569,11 @@ namespace CapaInterface
 
                 // Resetear correlativo cuando cambia de grupo
                 if (datarow["od_nord"].ToString() != grupo)
-                {
+                { 
                     correlativo = 0;
                     grupo = datarow["od_nord"].ToString();
                 }
-
+                
                 for (int xi = 0; xi < 12; xi++)
                 {
 
@@ -568,7 +592,7 @@ namespace CapaInterface
                             if (datarow["od_cpack"].ToString() == "00001" || datarow["od_cpack"].ToString().Trim() == String.Empty)
                             { keyitem = datarow["od_cart"].ToString() + datarow["od_cali"].ToString() + pos + DatosGenerales.CodNoRetail; }
                             else
-                            { keyitem = datarow["od_cart"].ToString() + datarow["od_cali"].ToString() + datarow["od_cpack"].ToString() + DatosGenerales.CodNoRetail; }
+                            { keyitem = datarow["od_cart"].ToString() + datarow["od_cali"].ToString() + datarow["od_cpack"].ToString() + DatosGenerales.CodNoRetail; }                                                      
 
                             str.Append(datarow["od_nord"].ToString() + delimited);            // Numero de orden de despacho
                             str.Append(zcd + delimited);                                      // Facility code
@@ -617,8 +641,6 @@ namespace CapaInterface
 
             //LogHandle.Graba_Log(winterface, "ENTRANDO A CONSULTAR DATA"); // OJO POR MIENTRAS
 
-            string Dias = ConfigurationManager.AppSettings["dias"].ToString();
-
             bool exito = false;
 
             dt_cab_retail = null;
@@ -628,85 +650,156 @@ namespace CapaInterface
 
             string sql = "";
 
-            // CABECERA RETAIL
-            sql = "SELECT cgud_gudis,cgud_tndcl,cgud_canal,cgud_caden,cgud_almac,cgud_femis FROM SCCCGUD WHERE CGUD_FEMIS>=DATE()-" + Dias + " AND EMPTY(FLAG_WMS) AND CGUD_EMPRE!='06' ORDER BY cgud_gudis ";
+            // CABECERA
+            sql = "SELECT cgud_gudis,cgud_tndcl,cgud_canal,cgud_caden,cgud_almac,cgud_femis FROM SCCCGUD WHERE CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " AND EMPTY(FLAG_WMS) AND CGUD_EMPRE!='06' ORDER BY cgud_gudis ";
             dt_cab_retail = Conexion.Obt_dbf(sql, DatosGenerales.CodRetail);
 
             // DETALLE
             if (dt_cab_retail != null && dt_cab_retail.Rows.Count > 0)
             {
-                sql = "SELECT cgud_almac,dgud_gudis,dgud_artic,dgud_calid,dgud_costo,dgud_codpp,dgud_cpack,dgud_touni,dgud_med00,dgud_med01,dgud_med02,dgud_med03,dgud_med04,dgud_med05,dgud_med06,dgud_med07,dgud_med08,dgud_med09,dgud_med10,dgud_med11 FROM SCCCGUD INNER JOIN SCDDGUD ON CGUD_GUDIS=DGUD_GUDIS WHERE CGUD_FEMIS>=DATE()-" + Dias + " AND EMPTY(FLAG_WMS) AND CGUD_EMPRE!='06' ORDER BY cgud_gudis ";
+                sql = "SELECT cgud_almac,dgud_gudis,dgud_artic,dgud_calid,dgud_costo,dgud_codpp,dgud_cpack,dgud_touni,dgud_med00,dgud_med01,dgud_med02,dgud_med03,dgud_med04,dgud_med05,dgud_med06,dgud_med07,dgud_med08,dgud_med09,dgud_med10,dgud_med11 FROM SCCCGUD INNER JOIN SCDDGUD ON CGUD_GUDIS=DGUD_GUDIS WHERE CGUD_FEMIS>=DATE()-" + wdiasatras.ToString() + " AND EMPTY(FLAG_WMS) AND CGUD_EMPRE!='06' ORDER BY cgud_gudis ";
                 dt_det_retail = Conexion.Obt_dbf(sql, DatosGenerales.CodRetail);
             }
 
-            // CABECERA RETAIL
-            sql = "SELECT oc_nord,oc_client,oc_canal,oc_secci,oc_almac,oc_fecha,oc_ccli,oc_caden,oc_tipref,oc_docref FROM vmaoc WHERE oc_fecha>=date()-" + Dias + " AND EMPTY(FLAG_WMS) AND OC_EMPRE!='06' ORDER BY oc_nord ";
+            // CABECERA
+            sql = "SELECT oc_nord,oc_client,oc_canal,oc_secci,oc_almac,oc_fecha,oc_ccli,oc_caden,oc_tipref,oc_docref FROM vmaoc WHERE oc_fecha>=date()-" + wdiasatras.ToString() + " AND EMPTY(FLAG_WMS) AND OC_EMPRE!='06' ORDER BY oc_nord ";
             dt_cab_noretail = Conexion.Obt_dbf(sql, DatosGenerales.CodNoRetail);
 
             // DETALLE
             if (dt_cab_noretail != null && dt_cab_noretail.Rows.Count > 0)
             {
-                sql = "SELECT oc_almac,od_nord,od_cart,od_cali,od_cpack,od_costo,od_qo00,od_qo01,od_qo02,od_qo03,od_qo04,od_qo05,od_qo06,od_qo07,od_qo08,od_qo09,od_qo10,od_qo11 FROM vmaoc INNER JOIN vmaod ON oc_nord=od_nord WHERE oc_fecha>=date()-" + Dias + " AND EMPTY(FLAG_WMS) AND OC_EMPRE!='06' ORDER BY oc_nord ";
+                sql = "SELECT oc_almac,od_nord,od_cart,od_cali,od_cpack,od_costo,od_qo00,od_qo01,od_qo02,od_qo03,od_qo04,od_qo05,od_qo06,od_qo07,od_qo08,od_qo09,od_qo10,od_qo11 FROM vmaoc INNER JOIN vmaod ON oc_nord=od_nord WHERE oc_fecha>=date()-" + wdiasatras.ToString() + " AND EMPTY(FLAG_WMS) AND OC_EMPRE!='06' ORDER BY oc_nord ";
                 dt_det_noretail = Conexion.Obt_dbf(sql, DatosGenerales.CodNoRetail);
             }
 
             if ((dt_cab_retail != null && dt_cab_retail.Rows.Count > 0) || (dt_cab_noretail != null && dt_cab_noretail.Rows.Count > 0))
-            {
-                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M008"].ToString(), false, "");
-                exito = true;
-            }
-            else
-            {
-                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M010"].ToString(), false, "");
-                exito = true;
-            }
+            { exito = true; }
+
+            LogUtil.Graba_Log(winterface, "CONSULTA DATA OK"); // OJO POR MIENTRAS
 
             return exito;
+
         }
 
-        private void Archiva_TXT(string CodAlmacen)
+
+
+        private void Archiva_TXT()
         {
             try
             {
-                Crear_Carpetas objCreaCarpeta = new Crear_Carpetas();
-                objCreaCarpeta.ArchivaInterface(CodAlmacen);
 
-
-                if (File.Exists(fileTXTc)) //cabecera
+                string path = Path.Combine(DatosGenerales.rutaMain, @"BACKUP\");
+                if (!Directory.Exists(path))
                 {
-                    if (CodAlmacen == "50001")
-                    {
-                        if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc));
-                        File.Move(fileTXTc, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc)); // Try to move
-                    }
-                    else
-                    {
-                        if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc));
-                        File.Move(fileTXTc, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc)); // Try to move
-                    }
+                    Directory.CreateDirectory(path);
                 }
 
-                if (File.Exists(fileTXTd)) //detalle
+                if (File.Exists(fileTXTc))
                 {
-                    if (CodAlmacen == "50001")
-                    {
-                        if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd));
-                        File.Move(fileTXTd, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd)); // Try to move
-                    }
-                    else
-                    {
-                        if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd));
-                        File.Move(fileTXTd, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd)); // Try to move
-                    }
-
+                    if (File.Exists(path + Path.GetFileName(fileTXTc))) File.Delete(path + Path.GetFileName(fileTXTc));
+                    File.Move(fileTXTc, path + Path.GetFileName(fileTXTc)); // Try to move
                 }
 
+                if (File.Exists(fileTXTd))
+                { 
+                    if (File.Exists(path + Path.GetFileName(fileTXTd))) File.Delete(path + Path.GetFileName(fileTXTd));
+                    File.Move(fileTXTd, path + Path.GetFileName(fileTXTd)); // Try to move
+                }
+                                
+                
             }
-            catch (Exception ex)
+            catch
             {
-                LogUtil.Graba_Log(winterface, winterface + " ERROR: " + ex.ToString(), true, "");
+                // omitido
             }
         }
+
+        //private bool Send_FTP_WMS(string file_origen, string file_destino)
+        //{
+        //    bool exito = false;
+
+        //    try
+        //    {
+        //        // Setup session options
+        //        SessionOptions sessionOptions = new SessionOptions
+        //        {
+        //            Protocol = Protocol.Sftp,
+        //            HostName = DatosGenerales.UrlFtp, //"172.24.20.183"
+        //            UserName = DatosGenerales.UserFtp, //"retailc"
+        //            Password = DatosGenerales.PassFtp, //"1wiAwNRa"
+        //            PortNumber = 22,
+        //            GiveUpSecurityAndAcceptAnySshHostKey = true
+        //        };
+
+        //        using (Session session = new Session())
+        //        {
+
+        //            // Connect
+        //            session.Open(sessionOptions);
+        //            //str.WriteLine("**************** CONECTADO CON EXITO AL FTP " + DateTime.Now);
+        //            //str.WriteLine("INICIO SUBIDA DE ACHIVO " + NombreArchivo + " AL SFTP " + DateTime.Now);
+        //            //string nombreAchivoRuta = NombreArchivo + DateTime.Now.ToString("yyyyMMdd") + ".mnt";
+        //            //string nombreArchivoCompleto = fileTXTc; // "\\\\200.1.1.40\\appl\\pos\\interfaces\\" + nombreAchivoRuta;
+
+        //            // Upload files
+        //            TransferOptions transferOptions = new TransferOptions();
+        //            transferOptions.FilePermissions = null; // This is default
+        //            transferOptions.PreserveTimestamp = false;
+        //            transferOptions.TransferMode = TransferMode.Binary;
+        //            TransferOperationResult transferResult;
+
+        //            //transferResult = session.PutFiles(fileTXTc, "/data/02_PE/input/" + Path.GetFileName(fileTXTc), false, transferOptions);
+
+        //            transferResult = session.PutFiles(file_origen, "/data/730/input/" + Path.GetFileName(file_destino), false, transferOptions);                                        
+
+        //            // Throw on any error
+        //            transferResult.Check();
+
+        //            //if (transferResult.IsSuccess == true) exito = true;
+        //            exito = transferResult.IsSuccess;
+
+        //            // Print results
+        //            //if (exito)
+        //            //{
+        //            //    foreach (TransferEventArgs transfer in transferResult.Transfers)
+        //            //    {
+        //            //        //varFinal = nombreAchivoRuta + "°" + subido + "°" + "CORRECTAMENTE SUBIDO" + transfer.FileName + " " + DateTime.Now + "°" + "1";
+        //            //        str.WriteLine("ARCHIVO FUE CARGADO OK: " + transfer.FileName + " " + DateTime.Now);
+        //            //        //exito = true;
+        //            //    }
+        //            //}
+        //        }
+        //    }
+
+        //    catch (Exception ex)
+        //    {
+        //        //varFinal = string.Empty + "°" + string.Empty + "°" + "[ERROR] NO SE PUDO CARGAR EL DOCUMENTO " + NombreArchivo + " " + DateTime.Now + "°" + "0";
+        //        //str.WriteLine("ERROR AL SUBIR ARCHIVO: " + fileTXTc + " " + e.Message + " " + DateTime.Now);
+        //        LogHandle.Graba_Log(winterface, "ERROR AL SUBIR FTP: " +ex.Message);
+        //    }
+
+
+        //    return exito;
+        //}
+
+
+        //private void Generar_Texto(ref String _error)
+        //{
+        //    using (System.IO.StreamWriter file =
+        //    new System.IO.StreamWriter(@"C:\PruebaServicio\WriteLines2.txt", true))
+        //    {
+        //        file.WriteLine("Fourth line");
+        //    }
+        //}
+
+
+        //private string Obt_CD(string codalm)
+        //{
+        //    if (codalm.Contains("4,6"))
+        //        return "50003";
+        //    else
+        //        return "50001";
+        //}
 
     }
 }
