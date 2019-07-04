@@ -596,9 +596,20 @@ namespace CapaInterface
                                           ", C.COD_SECCI " +
                                           ", D.COD_CPACK " +
                                           ", D.CAN_MED00 AS CANTIDAD " +
-                                          ", D.CAN_MED00, D.CAN_MED01, D.CAN_MED02, D.CAN_MED03, D.CAN_MED04, D.CAN_MED05, D.CAN_MED06, D.CAN_MED07, D.CAN_MED08, D.CAN_MED09, D.CAN_MED10, D.CAN_MED11 " +
+                                          ", D.CAN_MED00 AS CAN_MED01 " +
+                                          ", D.CAN_MED01 AS CAN_MED02 " +
+                                          ", D.CAN_MED02 AS CAN_MED03 " +
+                                          ", D.CAN_MED03 AS CAN_MED04 " +
+                                          ", D.CAN_MED04 AS CAN_MED05 " +
+                                          ", D.CAN_MED05 AS CAN_MED06 " +
+                                          ", D.CAN_MED06 AS CAN_MED07 " +
+                                          ", D.CAN_MED07 AS CAN_MED08 " +
+                                          ", D.CAN_MED08 AS CAN_MED09 " +
+                                          ", D.CAN_MED09 AS CAN_MED10 " +
+                                          ", D.CAN_MED10 AS CAN_MED11 " +
+                                          ", D.CAN_MED11 AS CAN_MED12" +
                                           ", C.COD_CADENA " +
-                                          "FROM TOCOMPRAPLX D " +
+                                          "FROM TOCOMPRAPLX_ASN D " +
                                           "LEFT JOIN TOCOMPRACX C ON C.NRO_OCOMPRA = D.NRO_OCOMPRA " +
                                           "INNER JOIN TCADENA CA ON D.COD_CADENAD = CA.COD_CADENA " +
                                           "WHERE C.COD_SECCI NOT IN ('M','V') " +
