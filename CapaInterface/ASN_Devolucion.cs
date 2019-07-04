@@ -311,7 +311,7 @@ namespace CapaInterface
                 correlativo += 1;
 
                 //string pos = (xi + 1).ToString().Trim().PadLeft(2, cero);
-                string pos = datarow["desd_med_lat"].ToString();
+                string pos = datarow["desd_med_aju"].ToString();
 
                 keyitem = datarow["desd_artic"].ToString() + datarow["desd_calid"].ToString() + pos + DatosGenerales.CodRetail;
                 cadalm = datarow["desc_caden"].ToString() + datarow["desc_almac"].ToString();
