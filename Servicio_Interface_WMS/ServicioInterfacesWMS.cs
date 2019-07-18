@@ -54,7 +54,7 @@ namespace CapaServicio
         // timer para actualizar lista con tabla tabgen.dbf
         Timer tmactulista = null;
 
-
+ 
         public ServicioInterfaceWMS()
         {
             InitializeComponent();
@@ -64,19 +64,19 @@ namespace CapaServicio
             tmactulista.Elapsed += new ElapsedEventHandler(tmactulista_Elapsed);
 
             // Prescripciones
-            tmservicio_Prescripciones = new Timer(10000); //30000
+            tmservicio_Prescripciones = new Timer(300000);
             tmservicio_Prescripciones.Elapsed += new ElapsedEventHandler(tmpServicio_Prescripciones_Elapsed);
 
             // Purchase            
-            tmservicio_Purchase = new Timer(30000);
+            tmservicio_Purchase = new Timer(300000);
             tmservicio_Purchase.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_Purchase);
 
             // ASN Purchase
-            tmservicio_ASN_Purchase = new Timer(30000);
+            tmservicio_ASN_Purchase = new Timer(300000);
             tmservicio_ASN_Purchase.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_ASN_Purchase);
 
             // Leer archivos del Ftp
-            tmservicio_Leer_FTP = new Timer(30000);
+            tmservicio_Leer_FTP = new Timer(300000);
             tmservicio_Leer_FTP.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_Leer_FTP);
 
             // ASN Devoluciones de Tiendas
@@ -84,11 +84,11 @@ namespace CapaServicio
             tmservicio_ASN_Devol.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_ASN_Devol);
 
             // order HDR, DTL carrito
-            tmservicio_HDR_DTL = new Timer(30000);
+            tmservicio_HDR_DTL = new Timer(300000);//300000
             tmservicio_HDR_DTL.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_HDR_DTL);
 
             // order HDR, DTL catalogo
-            tmservicio_HDR_DTL_catalogo = new Timer(30000);
+            tmservicio_HDR_DTL_catalogo = new Timer(300000);//300000
             tmservicio_HDR_DTL_catalogo.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_HDR_DTL_catalogo);
 
         }
@@ -123,7 +123,8 @@ namespace CapaServicio
                     {
                         wenproceso_Prescripciones = 1;
                         Prescripcion oprescrip = new Prescripcion();
-                        oprescrip.Genera_Interface_Prescripcion();
+                        oprescrip.Genera_Interface_Prescripcion(1); // 1=retail
+                        oprescrip.Genera_Interface_Prescripcion(2); // 2=no retail
                         wenproceso_Prescripciones = 0;
                     }
                 }
@@ -185,7 +186,6 @@ namespace CapaServicio
                 wenproceso_ASN_Purchase = 0;
             }
 
-
         }
 
         //**************************************************************************** Por JC
@@ -211,7 +211,6 @@ namespace CapaServicio
                 wenproceso_Leer_FTP = 0;
             }
 
-
         }
 
         //**************************************************************************** Por JC
@@ -236,8 +235,6 @@ namespace CapaServicio
 
                 wenproceso_HDR_DTL = 0;
             }
-
-
 
         }
 
@@ -266,7 +263,6 @@ namespace CapaServicio
 
         }
 
-
         //****************************************************************************
         void tmpServicio_Elapsed_HDR_DTL_catalogo(object sender, ElapsedEventArgs e)
         {
@@ -290,7 +286,6 @@ namespace CapaServicio
                 wenproceso_HDR_DTL_catalogo = 0;
             }
 
-
         }
 
         protected override void OnStart(string[] args)
@@ -308,7 +303,6 @@ namespace CapaServicio
             tmservicio_HDR_DTL_catalogo.Start();
             tmservicio_HDR_DTL.Start();
 
-
         }
 
         protected override void OnStop()
@@ -323,7 +317,6 @@ namespace CapaServicio
             ///*interface hdr/dtl*/
             tmservicio_HDR_DTL_catalogo.Stop();
             tmservicio_HDR_DTL.Stop();
-
 
         }
 

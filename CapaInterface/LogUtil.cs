@@ -76,33 +76,33 @@ namespace CapaInterface
                     writer.WriteLine("Fecha: " + DateTime.Now.ToString() + " " + error_msg);
                 }
 
-                if (flag_msg == true)
-                {
+                //if (flag_msg == true)
+                //{
 
-                    //preguntar si es error para registrar en bd
+                //    //preguntar si es error para registrar en bd
 
-                    string sqlquery = "[USP_Inserta_Error_Interface]";
-                    try
-                    {
-                        using (SqlConnection cn = new SqlConnection(Conexion.conexion))
-                        {
-                            if (cn.State == 0) cn.Open();
-                            using (SqlCommand cmd = new SqlCommand(sqlquery, cn))
-                            {
-                                cmd.CommandTimeout = 0;
-                                cmd.CommandType = CommandType.StoredProcedure;
-                                cmd.Parameters.AddWithValue("@ERR_INTERFACE", interfaz);
-                                cmd.Parameters.AddWithValue("@ERR_DESCRIP", error_msg);
-                                cmd.Parameters.AddWithValue("@ERR_ORIGEN", NomArchivo);
-                                cmd.ExecuteNonQuery();
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        LogUtil.Graba_Log(interfaz, "" + " ERROR: " + ex.ToString(), true, "");
-                    }
-                }
+                //    string sqlquery = "[USP_Inserta_Error_Interface]";
+                //    try
+                //    {
+                //        using (SqlConnection cn = new SqlConnection(Conexion.conexion))
+                //        {
+                //            if (cn.State == 0) cn.Open();
+                //            using (SqlCommand cmd = new SqlCommand(sqlquery, cn))
+                //            {
+                //                cmd.CommandTimeout = 0;
+                //                cmd.CommandType = CommandType.StoredProcedure;
+                //                cmd.Parameters.AddWithValue("@ERR_INTERFACE", interfaz);
+                //                cmd.Parameters.AddWithValue("@ERR_DESCRIP", error_msg);
+                //                cmd.Parameters.AddWithValue("@ERR_ORIGEN", NomArchivo);
+                //                cmd.ExecuteNonQuery();
+                //            }
+                //        }
+                //    }
+                //    catch (Exception ex)
+                //    {
+                //        LogUtil.Graba_Log(interfaz, "" + " ERROR: " + ex.ToString(), true, "");
+                //    }
+                //}
 
             }
             catch (Exception)
@@ -113,6 +113,48 @@ namespace CapaInterface
 
             return;
         }
+
+
+        //public static void Graba_WMS_Envios(string NroPedido, int Cantidad, string CodAlmacen, DateTime FechaHora)
+        //{
+        //    try
+        //    {
+
+        //        //preguntar si es error para registrar en bd
+
+        //        string sqlquery = "[USP_INSERTAR_WMS_ENVIOS]";
+        //        try
+        //        {
+        //            using (SqlConnection cn = new SqlConnection(Conexion.conexion))
+        //            {
+        //                if (cn.State == 0) cn.Open();
+        //                using (SqlCommand cmd = new SqlCommand(sqlquery, cn))
+        //                {
+        //                    cmd.CommandTimeout = 0;
+        //                    cmd.CommandType = CommandType.StoredProcedure;
+        //                    cmd.Parameters.AddWithValue("@NRO_PEDIDO", NroPedido);
+        //                    cmd.Parameters.AddWithValue("@CANTIDAD_PEDIDO", Cantidad);
+        //                    cmd.Parameters.AddWithValue("@COD_ALMACEN", CodAlmacen);
+        //                    cmd.Parameters.AddWithValue("@FECHA_HORA_REG", FechaHora);
+        //                    cmd.ExecuteNonQuery();
+        //                }
+        //            }
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            LogUtil.Graba_Log("ENVIOS WMS"," ERROR: " + ex.ToString(), true, "");
+        //        }
+        //    }
+        //    catch (Exception)
+        //    {
+        //        //LogUtil.Graba_Log("ERROR AL ESCRIBIR EN EL ARCHIVO LOG", "" + " ERROR: " + ex.ToString(), true, "");
+
+        //    }
+
+        //    return;
+        //}
+
+
 
     }
 }

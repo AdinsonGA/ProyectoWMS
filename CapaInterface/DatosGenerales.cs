@@ -43,28 +43,31 @@ namespace CapaInterface
 
         public static void Llena_CDxAlm()
         {
-            try
+            //try
+            //{
+
+            string sql = "SELECT tab_ctab as codalm, left(tab_cpar6,3) as cd FROM TABGEN WHERE tab_tipo='206' AND !EMPTY(tab_ctab)";
+            DataTable dt_tabgen = null;
+            int NoRetail = 2;  // Para escoger la ruta del dbf tabgen
+
+            dt_tabgen = Conexion.Obt_dbf(sql, NoRetail);
+
+            listCDxAlm = dt_tabgen.AsEnumerable().Select(m => new CDxAlm()
             {
+                codalm = m.Field<string>("codalm"),
+                CD = m.Field<string>("CD"),
+            }).ToList();
 
-                string sql = "SELECT tab_ctab as codalm, left(tab_cpar6,3) as cd FROM TABGEN WHERE tab_tipo='206' AND !EMPTY(tab_ctab)";
-                DataTable dt_tabgen = null;
-                dt_tabgen = Conexion.Obt_dbf(sql, DatosGenerales.CodNoRetail);
+            dt_tabgen = null;
 
-                listCDxAlm = dt_tabgen.AsEnumerable().Select(m => new CDxAlm()
-                {
-                    codalm = m.Field<string>("codalm"),
-                    CD = m.Field<string>("CD"),
-                }).ToList();
+            //}
+            //catch (Exception ex)
+            //{
 
-                dt_tabgen = null;
-            }
-            catch (Exception ex)
-            {
+            //    //LogUtil.Graba_Log(winterface, winterface + " ERROR: " + ex.ToString(), true, "");
+            //    throw ex;
+            //}
 
-                //LogUtil.Graba_Log(winterface, winterface + " ERROR: " + ex.ToString(), true, "");
-                throw ex;
-            }
-           
         }
 
         public static string Obt_CDxAlm(string codalm)

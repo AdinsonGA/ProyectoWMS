@@ -22,6 +22,7 @@ namespace CapaInterface
         string wcd = "50001";
         //string waction = "CREATE";
         string winterface = "ORDECAT";
+        //string IdPedidoWMS = "";
         //int wdiasatras = 7;
 
         //************** Datatables globales para guardar 
@@ -45,7 +46,7 @@ namespace CapaInterface
                 Crear_Carpetas objCreaCarpeta = new Crear_Carpetas();
                 objCreaCarpeta.ArchivaInterface("WMS");
 
-                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M001"].ToString(), false, "");
+                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M001"].ToString(), false, ""); //INICIO DE PROCESO
 
                 if (Obtiene_Data())
                 {
@@ -64,21 +65,21 @@ namespace CapaInterface
                 }
                 if (exito)
                 {
-                    LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M002"].ToString(), false, "");
+                    LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M002"].ToString(), false, ""); //MSJ SE PROCESO LA DATA OK
                 }
                 else
                 {
-                    LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M003"].ToString(), false, "");
+                    LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M003"].ToString(), false, ""); //MSJ NO SE REALIZO NINGUN PROCESO
                 }
 
             }
             catch (Exception ex)
             {
-                LogUtil.Graba_Log(winterface, winterface + " : Error: " + ex.ToString(), true, fileTXTc + fileTXTc + "/" + fileTXTd);
+                LogUtil.Graba_Log(winterface, winterface + " : Error: " + ex.ToString(), true, fileTXTc + fileTXTc + "/" + fileTXTd); //ERROR AL PROCESAR
             }
             finally
             {
-                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M004"].ToString(), false, "");
+                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M004"].ToString(), false, ""); //MSJ FIN DE PROCESO DE DATA
             }
         }
 
@@ -118,13 +119,13 @@ namespace CapaInterface
 
             if (dt_cab != null && dt_cab.Rows.Count > 0)
             {
-                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M008"].ToString(), false, "");
+                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M008"].ToString(), false, ""); //MSJ CONSULTA OK
                 exito = true;
             }
 
             else
             {
-                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M010"].ToString(), false, "");
+                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M010"].ToString(), false, ""); // MSJ NO HAY DATOS PARA PROCESAR
                 return exito;
             }
 
@@ -136,7 +137,7 @@ namespace CapaInterface
 
             string fechor = DateTime.Now.ToString("yyyyMMddHHmmss") + ".TXT";
 
-            fileTXTc = Path.Combine(Crear_Carpetas.WORK,  "ORH_CAT_" + fechor);
+            fileTXTc = Path.Combine(Crear_Carpetas.WORK, "ORH_CAT_" + fechor);
             fileTXTd = Path.Combine(Crear_Carpetas.WORK, "ORD_CAT_" + fechor);
 
             // Eliminar archivos ORH_CAT, ORD_CAT.TXT
@@ -287,6 +288,15 @@ namespace CapaInterface
             exito = (File.Exists(fileTXTc) && File.Exists(fileTXTd));
             //exito = (File.Exists(fileTXTc));
 
+            if (exito)
+            {
+                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M012"] + " : " + fileTXTc + "  " + fileTXTd, false, ""); // MSJ SE GENERO LOS ARCHIVOS OK
+            }
+            else
+            {
+                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M013"] + " : " + fileTXTc + "  " + fileTXTd, false, ""); //MSJ NO SE GENERO LOS ARCHIVOS
+            }
+
             return exito;
         }
 
@@ -328,11 +338,11 @@ namespace CapaInterface
 
             if (exito1 && exito2)
             {
-                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M006"].ToString(), false, "");
+                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M006"].ToString(), false, ""); // MSJ SE ENVIO AL FTP OK
             }
             else
             {
-                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M007"].ToString(), true, fileTXTc);
+                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M007"].ToString(), true, fileTXTc); //MSJ NO SE ENVIO AL FTP
             }
 
             return (exito1 && exito2);
@@ -370,6 +380,7 @@ namespace CapaInterface
                     //    listaCade.Add(cade);
                     //    cade = "";
                     //}
+
                 }
 
                 cade = cade.TrimEnd(',');
@@ -402,11 +413,15 @@ namespace CapaInterface
                             cmd.CommandTimeout = 0;
                             cmd.ExecuteNonQuery();
                             exito = true;
+                            if (cn != null)
+                                if (cn.State == ConnectionState.Open) cn.Close();
 
                             //System.Data.OleDb.OleDbCommand com_upd = new System.Data.OleDb.OleDbCommand(sql_upd, dbConn);
                             //com_upd.ExecuteNonQuery();
                             //int count = caden.Count(f => f == ',');
                             LogUtil.Graba_Log(winterface, winterface + " : Se actualizó : " + Convert.ToString(dt_cab.Rows.Count) + " documentos", false, "");
+                            //recorre_cabecera("");
+
                         }
 
                     }
@@ -414,7 +429,7 @@ namespace CapaInterface
                 }
                 catch (Exception ex)
                 {
-                    LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M005"].ToString() + ex.ToString(), true, fileTXTc);
+                    LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M005"].ToString() + ex.ToString(), true, fileTXTc); //MSJ ERROR AL ACTUALIZAR DATA
                 }
 
             }
@@ -423,6 +438,51 @@ namespace CapaInterface
 
         }
 
+        //private bool RegistrarWMS_Envios(string IdPedidoWMS)
+        //{
+        //    int Cantidad = 0;
+        //    string CodAlmacen = "50001";
 
+        //    if (dt_cab != null && dt_cab.Rows.Count > 0)
+        //    {
+           
+        //        foreach (DataRow filad in dt_det.Rows)
+        //        {
+        //            if (Convert.ToString(filad["hdr_group_nbr"]).Trim() == IdPedidoWMS)
+        //            {
+        //                Cantidad = Cantidad + 1;
+        //            }
+        //            else
+        //            {
+        //                recorre_cabecera(IdPedidoWMS);
+
+        //                if (Convert.ToString(filad["hdr_group_nbr"]).Trim() == IdPedidoWMS)
+        //                {
+        //                    Cantidad = Cantidad + 1;
+        //                }
+
+        //            }
+
+        //            LogUtil.Graba_WMS_Envios(IdPedidoWMS, Cantidad, CodAlmacen, DateTime.Now);
+        //        }
+
+        //    }
+        //    return true;
+        //}
+
+        //private string recorre_cabecera(string IdPedidoWMS)
+        //{
+        
+        //    foreach (DataRow fila in dt_cab.Rows)
+        //    {
+        //        if (Convert.ToString(fila["liq_id"]).Trim() != IdPedidoWMS)
+        //        {
+        //            RegistrarWMS_Envios(Convert.ToString(fila["liq_id"]).Trim());
+        //        }
+            
+        //    }
+        //    return IdPedidoWMS;
+
+        //}
     }
 }

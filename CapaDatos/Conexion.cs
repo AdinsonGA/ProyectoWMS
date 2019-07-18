@@ -14,7 +14,7 @@ namespace CapaDatos
     {
 
         public static bool FLPRUEBA = false;
-
+ 
         //************** Datos conexion SQL
         public static string conexion
         {
@@ -61,6 +61,7 @@ namespace CapaDatos
         public static string conexion_Postgre
         {
             get { return "Server= '172.28.7.20'; Port= '5432'; User= 'admin'; Password = 'batanet'; Database = 'scomercial'; "; }
+      
         }
 
 
@@ -70,39 +71,36 @@ namespace CapaDatos
             NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf2"], "dmendoza", "Bata2013*");
             //return true;
 
-            
+
             return true;
 
         }
 
-        public static DataTable Obt_dbf(string sql, string retail_noretail)
+        public static DataTable Obt_dbf(string sql, int retail_noretail)
         {
             DataTable dt = null;
-
             string conex = "";
 
-            if (retail_noretail == "5")
+            try
             {
-                conex = Conn2;
-                NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf2"], "SERVICIOS", "servicios123");
-
-            }
-
-            else
-            {
-                conex = Conn1;
-                NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf1"], "SERVICIOS", "servicios123");
-
-            }
-
-
-            //File.WriteAllText(@"C:\WMS\LOG\LOGXXX.txt", conex);
-
-            using (OleDbConnection dbConn = new OleDbConnection(conex))
-            {
-
-                try
+                if (retail_noretail == 1)
                 {
+                    conex = Conn2;
+                    NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf2"], "SERVICIOS", "servicios123");
+                }
+                else
+                {
+                    conex = Conn1;
+                    NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf1"], "SERVICIOS", "servicios123");
+                }
+
+
+                //File.WriteAllText(@"C:\WMS\LOG\LOGXXX.txt", conex);
+
+
+                using (OleDbConnection dbConn = new OleDbConnection(conex))
+                {
+
                     //FALTA EVALUAR new System.Data.OleDb.OleDbCommand("set enginebehavior 80", dbConn).ExecuteNonQuery();
 
                     dbConn.Open();
@@ -115,75 +113,78 @@ namespace CapaDatos
 
                     // Obtenemos datos del DBF
                     System.Data.OleDb.OleDbCommand com = new System.Data.OleDb.OleDbCommand(sql, dbConn);
+                    com.CommandTimeout = 0;
                     System.Data.OleDb.OleDbDataAdapter ada = new System.Data.OleDb.OleDbDataAdapter(com);
                     dt = new DataTable();
                     ada.Fill(dt);
 
-                }
-                catch (Exception ex)
-                {
                     if (dbConn != null)
                         if (dbConn.State == ConnectionState.Open) dbConn.Close();
-
-                    // cquinto: message ? deberia grabar en el Log y continuar
-                    //ex.Message.ToString();
-                    throw ex;
-                    //dt = null;
                 }
+            }
+            catch (Exception ex)
+            {
+                //if (dbConn != null)
+                //    if (dbConn.State == ConnectionState.Open) dbConn.Close();
 
-                if (dbConn != null)
-                    if (dbConn.State == ConnectionState.Open) dbConn.Close();
-
-                //OleDbConnection cnDBF = new OleDbConnection(conex);
-                //cnDBF.Open();
-                //OleDbCommand comando = new OleDbCommand(sql, cnDBF);
-                //OleDbDataAdapter adaptador = new OleDbDataAdapter(comando);
-                //DataTable tabla = new DataTable();
-                //adaptador.Fill(tabla);
-
-                // return datatable;
-                return dt;
+                // cquinto: message ? deberia grabar en el Log y continuar
+                //ex.Message.ToString();
+                throw ex;
+                //dt = null;
             }
 
+            //if (dbConn != null)
+            //    if (dbConn.State == ConnectionState.Open) dbConn.Close();
+
+            //OleDbConnection cnDBF = new OleDbConnection(conex);
+            //cnDBF.Open();
+            //OleDbCommand comando = new OleDbCommand(sql, cnDBF);
+            //OleDbDataAdapter adaptador = new OleDbDataAdapter(comando);
+            //DataTable tabla = new DataTable();
+            //adaptador.Fill(tabla);
+
+            // return datatable;
+            return dt;
         }
-      
 
-    public static DataTable Obt_SQL(string sqlquery, ref string msgerror, string cabecera_detalle, Int32 dias)
-    {
-        //string sqlquery = "[USP_Inserta_Error_Interface]";
-
-        DataTable dt = new DataTable();
-        msgerror = "";
-
-        try
+        public static DataTable Obt_SQL(string sqlquery, ref string msgerror, string cabecera_detalle, Int32 dias)
         {
-            using (SqlConnection cn = new SqlConnection(Conexion.conexion))
+            //string sqlquery = "[USP_Inserta_Error_Interface]";
+
+            DataTable dt = new DataTable();
+            msgerror = "";
+
+            try
             {
-                if (cn.State == 0) cn.Open();
-                using (SqlCommand cmd = new SqlCommand(sqlquery, cn))
+                using (SqlConnection cn = new SqlConnection(Conexion.conexion))
                 {
-                    cmd.CommandTimeout = 0;
-                    cmd.CommandType = CommandType.StoredProcedure;
-                    cmd.Parameters.AddWithValue("@cabecera_detalle", cabecera_detalle);
-                    cmd.Parameters.AddWithValue("@dias", dias);
-                    //cmd.ExecuteNonQuery();
-                    using (var da = new SqlDataAdapter(cmd))
+                    if (cn.State == 0) cn.Open();
+                    using (SqlCommand cmd = new SqlCommand(sqlquery, cn))
                     {
-                        da.Fill(dt);
+                        cmd.CommandTimeout = 0;
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@cabecera_detalle", cabecera_detalle);
+                        cmd.Parameters.AddWithValue("@dias", dias);
+                        //cmd.ExecuteNonQuery();
+                        using (var da = new SqlDataAdapter(cmd))
+                        {
+                            da.Fill(dt);
+                            if (cn != null)
+                                if (cn.State == ConnectionState.Open) cn.Close();
+                        }
                     }
                 }
             }
+
+
+            catch (Exception ex)
+            {
+                // omitido
+                //LogHandle.Graba_Log("DEVOL", "ERROR CONSULTAR DATA SQL: "+ex.Message); // OJO POR MIENTRAS
+                msgerror = "ERROR CONSULTAR DATA SQL: " + ex.Message;
+            }
+
+            return dt;
         }
-
-
-        catch (Exception ex)
-        {
-            // omitido
-            //LogHandle.Graba_Log("DEVOL", "ERROR CONSULTAR DATA SQL: "+ex.Message); // OJO POR MIENTRAS
-            msgerror = "ERROR CONSULTAR DATA SQL: " + ex.Message;
-        }
-
-        return dt;
     }
-}
 }

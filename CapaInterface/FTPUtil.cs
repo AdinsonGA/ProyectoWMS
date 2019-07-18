@@ -69,7 +69,8 @@ namespace CapaInterface
             {
                 //varFinal = string.Empty + "°" + string.Empty + "°" + "[ERROR] NO SE PUDO CARGAR EL DOCUMENTO " + NombreArchivo + " " + DateTime.Now + "°" + "0";
                 //str.WriteLine("ERROR AL SUBIR ARCHIVO: " + fileTXTc + " " + e.Message + " " + DateTime.Now);
-                LogUtil.Graba_Log("PRESC", "ERROR AL SUBIR FTP: " + ex.Message,true,"");
+                //LogUtil.Graba_Log("INTERFACE WMS", "ERROR AL SUBIR FTP: " + ex.Message,true,"");
+                throw ex;
             }
 
 

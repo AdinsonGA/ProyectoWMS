@@ -33,7 +33,7 @@ namespace CapaInterface
 
         public void ArchivaInterface(string CodFlag)
         {
-            if (CodFlag == "WMS") //verificando la creacion de la carpeta matriz WMS
+            if (CodFlag == "WMS") // Verificando la creacion de la carpeta matriz WMS
             {
                 if (!Directory.Exists(WMS))
                 {

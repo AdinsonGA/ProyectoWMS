@@ -34,6 +34,9 @@
     <PlatformTarget>x86</PlatformTarget>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Ionic.Zip">
+      <HintPath>..\..\..\..\archivos\Ionic.Zip\Ionic.Zip.dll</HintPath>
+    </Reference>
     <Reference Include="Mono.Security, Version=4.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756, processorArchitecture=MSIL">
       <HintPath>..\packages\Npgsql.2.2.7\lib\net40\Mono.Security.dll</HintPath>
     </Reference>
