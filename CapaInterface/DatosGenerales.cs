@@ -18,7 +18,7 @@ namespace CapaInterface
         public string CD = "";
     }
 
-    public static class DatosGenerales
+    public class DatosGenerales
     {
 
         //************** Ruta principal
@@ -27,12 +27,70 @@ namespace CapaInterface
         public static string CodRetail = "5";
         public static string CodNoRetail = "6";
 
+        //public static string UrlFtp;
+        //public static string UserFtp;
+        //public static string PassFtp;
+        //public static string PuertoFtp;
+
         //public static string pathDbf1 = ConfigurationManager.AppSettings["pathDbf1"];
         //public static string pathDbf2 = ConfigurationManager.AppSettings["pathDbf2"];
 
-        public static string UrlFtp = ConfigurationManager.AppSettings["UrlFtp"];
-        public static string UserFtp = ConfigurationManager.AppSettings["UserFtp"];
-        public static string PassFtp = ConfigurationManager.AppSettings["PassFtp"];
+        public static string UrlFtp
+        {
+            get
+            {
+                if (ConfigurationManager.AppSettings["FlagServProd"].ToString() == "1")
+
+                    /*CREDENCIALES DE SERVIDOR DE PRODUCCION*/
+                    return ConfigurationManager.AppSettings["UrlFtp"];
+                else
+                    /*CREDENCIALES DE SERVIDOR DE TEST*/
+                    return ConfigurationManager.AppSettings["UrlFtp_test"];
+
+            }
+        }
+        public static string UserFtp
+        {
+            get
+            {
+                if (ConfigurationManager.AppSettings["FlagServProd"].ToString() == "1")
+
+                    /*CREDENCIALES USUARIO DE PRODUCCION*/
+                    return ConfigurationManager.AppSettings["UserFtp"];
+                else
+                    /*CREDENCIALES USUARIO DE TEST*/
+                    return ConfigurationManager.AppSettings["UserFtp_test"];
+            }
+        }
+        public static string PassFtp
+        {
+            get
+            {
+                if (ConfigurationManager.AppSettings["FlagServProd"].ToString() == "1")
+
+                    /*CREDENCIALES DE PASSWORD DE PRODUCCION*/
+                    return ConfigurationManager.AppSettings["PassFtp"];
+                else
+                    /*CREDENCIALES DE PASSWORD DE TEST*/
+                    return ConfigurationManager.AppSettings["PassFtp_test"];
+
+            }
+        }
+        public static string PuertoFtp
+        {
+            get
+            {
+                if (ConfigurationManager.AppSettings["FlagServProd"].ToString() == "1")
+
+                    /*CREDENCIALES DE PUERTO DE PRODUCCION*/
+                    return ConfigurationManager.AppSettings["PuertoFtp"];
+                else
+                    /*CREDENCIALES DE PUERTO DE TEST*/
+                    return ConfigurationManager.AppSettings["PuertoFtp_test"];
+
+            }
+        }
+        
 
         //public static string codalm = "50001";
         public static string codcia = "730";

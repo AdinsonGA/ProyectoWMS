@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -58,7 +59,7 @@ namespace CapaInterface
             string wtipo = "";
             try
             {
-                LogUtil.Graba_Log(Interface, "******* INICIO DE LECTURA TXT *******", false, "");
+                LogUtil.Graba_Log(Interface, "****** INICIO DE LECTURA TXT *******", false, "");
 
                 if (Lee_Descarga_Archivo())// Descarga los archivos del FTP a la Carpeta WORK (Local)
                 {
@@ -74,10 +75,9 @@ namespace CapaInterface
 
                         if (Graba_Sql(wtipo)) // Llenamos los Arreglos segun los Tipos
                         {
-                            //return;
-                            if (Archiva_TXT(Arr_Txt_Obl, Arr_Txt_Obs, Arr_Txt_Svh, Arr_Txt_Svd, Arr_Txt_Iht, wruta_50001, wtipo) && Archiva_TXT(Arr_Txt_Obl, Arr_Txt_Obs, Arr_Txt_Svh, Arr_Txt_Svd, Arr_Txt_Iht, wruta_50003, wtipo))
+                            if (Archiva_TXT(Arr_Txt_Obl, Arr_Txt_Obs, Arr_Txt_Svh, Arr_Txt_Svd, Arr_Txt_Iht, wruta_50001) && Archiva_TXT(Arr_Txt_Obl, Arr_Txt_Obs, Arr_Txt_Svh, Arr_Txt_Svd, Arr_Txt_Iht, wruta_50003))
                             {
-                                if (Borra_FTP(Arr_Txt_Obl, Arr_Txt_Obs, Arr_Txt_Svh, Arr_Txt_Svd, Arr_Txt_Iht, wruta_50001, wtipo) && Borra_FTP(Arr_Txt_Obl, Arr_Txt_Obs, Arr_Txt_Svh, Arr_Txt_Svd, Arr_Txt_Iht, wruta_50003, wtipo))
+                                if (Borra_FTP(Arr_Txt_Obl, Arr_Txt_Obs, Arr_Txt_Svh, Arr_Txt_Svd, Arr_Txt_Iht, wruta_50001) && Borra_FTP(Arr_Txt_Obl, Arr_Txt_Obs, Arr_Txt_Svh, Arr_Txt_Svd, Arr_Txt_Iht, wruta_50003))
                                 {
                                     exito = true;
                                 }
@@ -86,14 +86,15 @@ namespace CapaInterface
                     }//for
 
 
-                    //if (exito)
-                    //{
-                    //    //LogUtil.Graba_Log(Interface, "LECTURA DE ARCHIVOS DE TEXTO OK", false, "");
-                    //}
-                    //else
-                    //{
-                    //    //LogUtil.Graba_Log(Interface, "NO EXISTE INFORMACION PARA LEER", false, "");
-                    //}
+
+                    if (exito)
+                    {
+                        LogUtil.Graba_Log(Interface, "LECTURA DE ARCHIVOS DE TEXTO OK", false, "");
+                    }
+                    else
+                    {
+                        LogUtil.Graba_Log(Interface, "NO EXISTE INFORMACION PARA LEER", false, "");
+                    }
 
                 }
             }
@@ -105,16 +106,14 @@ namespace CapaInterface
             }
             finally
             {
-                LogUtil.Graba_Log(Interface, "******* FIN DE LECTURA DE TXT *********", false, "");
-                LogUtil.Graba_Log(Interface, " ", false, "");
-
+                LogUtil.Graba_Log(Interface, "******** FIN DE LECTURA DE TXT *********", false, "");
             }
         }
         //****************************************************************************
 
         public bool Lee_Descarga_Archivo()
         {
-            LogUtil.Graba_Log(Interface, "   Inicio Lee_Descarga_Archivo", false, "");
+
             bool exito = false;
 
 
@@ -130,24 +129,26 @@ namespace CapaInterface
                 transferOptions.FilePermissions = null; // This is default
                 transferOptions.PreserveTimestamp = false;
                 transferOptions.TransferMode = TransferMode.Binary;
-                transferOptions.FileMask = "*.*|success/";
-
-                TransferOperationResult transferResult1;
+                TransferOperationResult transferResult;
                 TransferOperationResult transferResult2;
 
                 // Lee y copia los archivos al disco local, carpeta Temporal
-                transferResult1 = session.GetFiles("/Peru/730/50001/output/", Crear_Carpetas.WORK, false, transferOptions);
+                transferResult = session.GetFiles("/Peru/730/50001/output/", Crear_Carpetas.WORK, false, transferOptions);
                 transferResult2 = session.GetFiles("/Peru/730/50003/output/", Crear_Carpetas.WORK, false, transferOptions);
 
                 // Throw on any error
-                transferResult1.Check();
-                transferResult2.Check();
+                transferResult.Check();
+                //if (transferResult.IsSuccess == true) exito = true;
 
-                exito = (transferResult1.IsSuccess && transferResult2.IsSuccess);
-                LogUtil.Graba_Log(Interface, "   Finaliza Lee_Descarga_Archivo", false, "");
+                transferResult2.Check();
+                //if (transferResult2.IsSuccess == true) exito2 = true;
+
+                exito = (transferResult.IsSuccess && transferResult2.IsSuccess);
+
             }
 
             return exito;
+
         }
 
         private bool Graba_Sql(string wtipo)
@@ -369,8 +370,6 @@ namespace CapaInterface
                     }//If
 
 
-                    LogUtil.Graba_Log(Interface, "   Inicia Graba_Sql, tipo: " + wtipo, false, "");
-
                     if (Arr_Txt_Obl.Length > 0) //CABECERA
                     {
                         for (Int32 i = 0; i < Arr_Txt_Obl.Length; ++i)
@@ -382,7 +381,6 @@ namespace CapaInterface
                                 string fichero = Crear_Carpetas.WORK + Path.GetFileName(Arr_Txt_Obl[i]);
                                 string[] lineas = File.ReadAllLines(fichero);
 
-                                LogUtil.Graba_Log(Interface, "      Inicia temporal OBL, tipo: " + wtipo, false, "");
                                 foreach (string lin in lineas)
                                 {
                                     string[] campos = lin.Split('|');
@@ -407,7 +405,6 @@ namespace CapaInterface
                                     dt_OBL.Rows.Add(whdr_group_nbr, wfacility_code, wcompany_code, waction_code, wload_type, wload_manifest_nbr, wtrailer_nbr,
                                     wtotal_nbr_of_oblpns, wtotal_weight, wtotal_volume, wtotal_shipping_charge, wship_date, wship_date_time);
                                 }//for
-                                LogUtil.Graba_Log(Interface, "      Finaliza temporal OBL, tipo: " + wtipo, false, "");
                             }//try
                             catch (Exception ex)
                             {
@@ -427,7 +424,6 @@ namespace CapaInterface
 
                     if (Arr_Txt_Obs.Length > 0) //DETALLE
                     {
-                        LogUtil.Graba_Log(Interface, "      Inicia temporal OBS, tipo: " + wtipo, false, "");
                         for (Int32 i = 0; i < Arr_Txt_Obs.Length; ++i)
                         {
                             dtAux_OBS.Clear();// Blanqueamnos DT por cada Archivo
@@ -444,95 +440,90 @@ namespace CapaInterface
                                 try
                                 {
                                     string[] campos = lin.Split('|');
+
+                                    string whdr_group_nbr = campos[0].ToString();
+                                    string wfacility_code = campos[1].ToString();
+                                    string wcompany_code = campos[2].ToString();
+                                    string wload_manifest_nbr = campos[4].ToString();
+                                    string wline_nbr = campos[5].ToString();
+                                    string wseq_nbr = campos[6].ToString();
+
+                                    string wstop_nbr_of_oblpns = campos[9].ToString();
+                                    string wstop_weight = campos[10].ToString();
+                                    string wstop_volume = campos[11].ToString();
+                                    string wshipto_facility_code = campos[13].ToString();
+
+
+                                    string wdest_facility_code = campos[25].ToString();
+                                    string worder_nbr = campos[38].ToString();
+
+                                    DateTime word_date = DateTime.ParseExact(campos[39].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+                                    DateTime wreq_ship_date = DateTime.ParseExact(campos[41].ToString(), "yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+
+                                    string wcustomer_po_nbr = campos[45].ToString();
+                                    string wdest_dept_nbr = campos[48].ToString();
+                                    string worder_hdr_cust_field_1 = campos[49].ToString();
+                                    string worder_hdr_cust_field_2 = campos[50].ToString();
+                                    string worder_hdr_cust_field_3 = campos[51].ToString();
+                                    string worder_hdr_cust_field_5 = campos[53].ToString();
+
+
+                                    string worder_seq_nbr = campos[54].ToString();
+                                    string wob_lpn_nbr = campos[60].ToString();
                                     string witem_alternate_code = campos[61].ToString();
                                     string witem_part_a = campos[62].ToString();
+                                    string witem_part_b = campos[63].ToString();
+                                    string witem_part_c = campos[64].ToString();
+                                    string witem_part_d = campos[65].ToString();
+                                    string wpre_pack_code = campos[68].ToString();
 
-                                    if (witem_alternate_code.Contains("PADRE02") || (witem_part_a.Contains("PADRE02")))
+                                    string wpre_pack_ratio = campos[69].ToString();
+                                    string wpre_pack_ratio_seq = campos[70].ToString();
+                                    string whazmat = campos[75].ToString();
+
+                                    string wshipped_uom = campos[76].ToString();
+                                    string wshipped_qty = campos[77].ToString();
+                                    string wob_lpn_weight = campos[88].ToString();
+                                    string wob_lpn_volume = campos[89].ToString();
+
+                                    string wob_lpn_shipping_charge = campos[90].ToString();
+                                    string wob_lpn_type = campos[91].ToString();
+
+                                    string worder_hdr_cust_number_1 = campos[102].ToString();
+                                    string worder_hdr_cust_number_2 = campos[103].ToString();
+                                    string worder_hdr_cust_number_3 = campos[104].ToString();
+                                    string worder_hdr_cust_number_4 = campos[105].ToString();
+
+                                    string worder_hdr_cust_short_text_1 = campos[112].ToString();
+                                    string worder_dtl_cust_short_text_1 = campos[142].ToString();// Numero de Orden de Compra
+
+                                    string worder_type = campos[161].ToString();
+                                    string wob_lpn_length = campos[165].ToString();
+                                    string wob_lpn_width = campos[166].ToString();
+                                    string wob_lpn_height = campos[167].ToString();
+
+                                    int werp_fulfillment_line_ref = 0;
+
+
+                                    if (campos[181].ToString() != "")
                                     {
-                                        LogUtil.Graba_Log(Interface, "Error: Registro Padre ", true, Path.GetFileName(ArchiOBS.ToString()));
+                                        werp_fulfillment_line_ref = Convert.ToInt32(campos[181]);
                                     }
-                                    else
-                                    {
-                                        string whdr_group_nbr = campos[0].ToString();
-                                        string wfacility_code = campos[1].ToString();
-                                        string wcompany_code = campos[2].ToString();
-                                        string wload_manifest_nbr = campos[4].ToString();
-                                        string wline_nbr = campos[5].ToString();
-                                        string wseq_nbr = campos[6].ToString();
-
-                                        string wstop_nbr_of_oblpns = campos[9].ToString();
-                                        string wstop_weight = campos[10].ToString();
-                                        string wstop_volume = campos[11].ToString();
-                                        string wshipto_facility_code = campos[13].ToString();
-
-                                        string wdest_facility_code = campos[25].ToString();
-                                        string worder_nbr = campos[38].ToString();
-
-                                        DateTime word_date = DateTime.ParseExact(campos[39].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
-                                        DateTime wreq_ship_date = DateTime.ParseExact(campos[41].ToString(), "yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
-
-                                        string wcustomer_po_nbr = campos[45].ToString();
-                                        string wdest_dept_nbr = campos[48].ToString();
-                                        string worder_hdr_cust_field_1 = campos[49].ToString();
-                                        string worder_hdr_cust_field_2 = campos[50].ToString();
-                                        string worder_hdr_cust_field_3 = campos[51].ToString();
-                                        string worder_hdr_cust_field_5 = campos[53].ToString();
 
 
-                                        string worder_seq_nbr = campos[54].ToString();
-                                        string wob_lpn_nbr = campos[60].ToString();
-                                        string witem_part_b = campos[63].ToString();
-                                        string witem_part_c = campos[64].ToString();
-                                        string witem_part_d = campos[65].ToString();
-                                        string wpre_pack_code = campos[68].ToString();
+                                    string wsales_order_line_ref = campos[182].ToString();
+                                    string wsales_order_schedule_ref = campos[183].ToString();
+                                    string wtms_order_hdr_ref = campos[184].ToString();
+                                    string wtms_order_dtl_ref = campos[185].ToString();
 
-                                        string wpre_pack_ratio = campos[69].ToString();
-                                        string wpre_pack_ratio_seq = campos[70].ToString();
-                                        string whazmat = campos[75].ToString();
-
-                                        string wshipped_uom = campos[76].ToString();
-                                        string wshipped_qty = campos[77].ToString();
-                                        string wob_lpn_weight = campos[88].ToString();
-                                        string wob_lpn_volume = campos[89].ToString();
-
-                                        string wob_lpn_shipping_charge = campos[90].ToString();
-                                        string wob_lpn_type = campos[91].ToString();
-
-                                        string worder_hdr_cust_number_1 = campos[102].ToString();
-                                        string worder_hdr_cust_number_2 = campos[103].ToString();
-                                        string worder_hdr_cust_number_3 = campos[104].ToString();
-                                        string worder_hdr_cust_number_4 = campos[105].ToString();
-
-                                        string worder_hdr_cust_short_text_1 = campos[112].ToString();
-                                        string worder_dtl_cust_short_text_1 = campos[142].ToString();// Numero de Orden de Compra
-
-                                        string worder_type = campos[161].ToString();
-                                        string wob_lpn_length = campos[165].ToString();
-                                        string wob_lpn_width = campos[166].ToString();
-                                        string wob_lpn_height = campos[167].ToString();
-
-                                        int werp_fulfillment_line_ref = 0;
-
-
-                                        if (campos[181].ToString() != "")
-                                        {
-                                            werp_fulfillment_line_ref = Convert.ToInt32(campos[181]);
-                                        }
-
-                                        string wsales_order_line_ref = campos[182].ToString();
-                                        string wsales_order_schedule_ref = campos[183].ToString();
-                                        string wtms_order_hdr_ref = campos[184].ToString();
-                                        string wtms_order_dtl_ref = campos[185].ToString();
-
-                                        dtAux_OBS.Rows.Add(whdr_group_nbr, wfacility_code, wcompany_code, wload_manifest_nbr, wline_nbr, wseq_nbr, wstop_nbr_of_oblpns,
-                                            wstop_weight, wstop_volume, wshipto_facility_code, wdest_facility_code, worder_nbr, word_date, wreq_ship_date, wcustomer_po_nbr,
-                                            wdest_dept_nbr, worder_hdr_cust_field_1, worder_hdr_cust_field_2, worder_hdr_cust_field_3, worder_hdr_cust_field_5,
-                                            worder_seq_nbr, wob_lpn_nbr, witem_alternate_code, witem_part_a, witem_part_b, witem_part_c, witem_part_d,
-                                            wpre_pack_code, wpre_pack_ratio, wpre_pack_ratio_seq, whazmat, wshipped_uom, wshipped_qty, wob_lpn_weight,
-                                            wob_lpn_volume, wob_lpn_shipping_charge, wob_lpn_type, worder_hdr_cust_number_1, worder_hdr_cust_number_2,
-                                            worder_hdr_cust_number_3, worder_hdr_cust_number_4, worder_type, wob_lpn_length, wob_lpn_width, wob_lpn_height,
-                                            worder_hdr_cust_short_text_1, worder_dtl_cust_short_text_1, werp_fulfillment_line_ref, wsales_order_line_ref, wsales_order_schedule_ref, wtms_order_hdr_ref, wtms_order_dtl_ref);
-                                    }
+                                    dtAux_OBS.Rows.Add(whdr_group_nbr, wfacility_code, wcompany_code, wload_manifest_nbr, wline_nbr, wseq_nbr, wstop_nbr_of_oblpns,
+                                        wstop_weight, wstop_volume, wshipto_facility_code, wdest_facility_code, worder_nbr, word_date, wreq_ship_date, wcustomer_po_nbr,
+                                        wdest_dept_nbr, worder_hdr_cust_field_1, worder_hdr_cust_field_2, worder_hdr_cust_field_3, worder_hdr_cust_field_5,
+                                        worder_seq_nbr, wob_lpn_nbr, witem_alternate_code, witem_part_a, witem_part_b, witem_part_c, witem_part_d,
+                                        wpre_pack_code, wpre_pack_ratio, wpre_pack_ratio_seq, whazmat, wshipped_uom, wshipped_qty, wob_lpn_weight,
+                                        wob_lpn_volume, wob_lpn_shipping_charge, wob_lpn_type, worder_hdr_cust_number_1, worder_hdr_cust_number_2,
+                                        worder_hdr_cust_number_3, worder_hdr_cust_number_4, worder_type, wob_lpn_length, wob_lpn_width, wob_lpn_height,
+                                        worder_hdr_cust_short_text_1, worder_dtl_cust_short_text_1, werp_fulfillment_line_ref, wsales_order_line_ref, wsales_order_schedule_ref, wtms_order_hdr_ref, wtms_order_dtl_ref);
                                 }
                                 catch (Exception ex)
                                 {
@@ -559,7 +550,6 @@ namespace CapaInterface
                                 }
                             }
                         }//for del arreglo
-                        LogUtil.Graba_Log(Interface, "      Finaliza temporal OBS, tipo: " + wtipo, false, "");
                     }//if
                 }//If wtipo = 'OBL'
 
@@ -578,10 +568,9 @@ namespace CapaInterface
                     }//If
 
 
-                    LogUtil.Graba_Log(Interface, "   Inicia Graba_Sql, tipo: " + wtipo, false, "");
+
                     if (Arr_Txt_Svh.Length > 0) //cabecera
                     {
-                        LogUtil.Graba_Log(Interface, "      Inicia temporal SVH, tipo: " + wtipo, false, "");
                         for (Int32 i = 0; i < Arr_Txt_Svh.Length; ++i)
                         {
                             try
@@ -630,14 +619,12 @@ namespace CapaInterface
                                 File.Move(ArchiSVH.ToString(), Crear_Carpetas.RECYCLER_LEER + Path.GetFileName(ArchiSVH.ToString())); // si el archivo esta con errores se mueve a la carpeta de reciclaje de archivos
                             }//catch
                         }//for
-                        LogUtil.Graba_Log(Interface, "      Finaliza temporal SVH, tipo: " + wtipo, false, "");
                     }//if
 
 
 
                     if (Arr_Txt_Svd.Length > 0) //detalle
                     {
-                        LogUtil.Graba_Log(Interface, "      Inicia temporal SVD, tipo: " + wtipo, false, "");
                         for (Int32 i = 0; i < Arr_Txt_Svd.Length; ++i)
                         {
                             dtAux_SVD.Clear();// Blanqueamnos DT por cada Archivo
@@ -734,7 +721,6 @@ namespace CapaInterface
                                 }
                             }
                         }//for del arreglo
-                        LogUtil.Graba_Log(Interface, "      Finaliza temporal SVD, tipo: " + wtipo, false, "");
                     }//if
                 }//if wtipo = 'SVH'
 
@@ -757,10 +743,9 @@ namespace CapaInterface
                     }//If
 
 
-                    LogUtil.Graba_Log(Interface, "   Inicia Graba_Sql, tipo: " + wtipo, false, "");
+
                     if (Arr_Txt_Iht.Length > 0)
                     {
-                        LogUtil.Graba_Log(Interface, "      Inicia temporal IHT, tipo: " + wtipo, false, "");
                         for (Int32 i = 0; i < Arr_Txt_Iht.Length; ++i)
                         {
                             dtAux_IHT.Clear();// Blanqueamnos DT por cada Archivo
@@ -877,7 +862,6 @@ namespace CapaInterface
                             }
 
                         }//for
-                        LogUtil.Graba_Log(Interface, "      Finaliza temporal IHT, tipo: " + wtipo, false, "");
                     }//if
                 }//If wtipo = 'IHT'
 
@@ -902,23 +886,9 @@ namespace CapaInterface
                         cmd.Parameters.AddWithValue("@IHT", dt_IHT);
                         cmd.Parameters.AddWithValue("@TIPO", wtipo);
 
-                        LogUtil.Graba_Log(Interface, "      Envia sentencia a SQL, tipo: " + wtipo, false, "");
                         cmd.ExecuteNonQuery();
-                        LogUtil.Graba_Log(Interface, "      Finaliza sentencia SQL, tipo: " + wtipo, false, "");
 
                         exito = true;
-
-                        String Wmsg = "";
-                        if (exito == true)
-                        {
-                            Wmsg = "OK";
-                        }
-                        else
-                        {
-                            Wmsg = "Error";
-                        }
-                        LogUtil.Graba_Log(Interface, "   Finaliza Graba_Sql, exito: " + Wmsg, false, "");
-
                     }//using
                     if (cn != null)
                         if (cn.State == ConnectionState.Open) cn.Close();
@@ -933,9 +903,8 @@ namespace CapaInterface
             return exito;
         }
 
-        private bool Archiva_TXT(string[] Arr_OBL, string[] Arr_OBS, string[] Arr_SVH, string[] Arr_SVD, string[] Arr_IHT, string ruta, string wtipo)
+        private bool Archiva_TXT(string[] Arr_OBL, string[] Arr_OBS, string[] Arr_SVH, string[] Arr_SVD, string[] Arr_IHT, string ruta)
         {
-            LogUtil.Graba_Log(Interface, "   Inicia Archiva_TXT, tipo: " + wtipo, false, "");
             bool exito = false;
             string Archivo_Destino = "";
             try
@@ -956,161 +925,139 @@ namespace CapaInterface
                     Directory.CreateDirectory(path);
                 }
 
-                if (wtipo == "OBL")
+                //--------- Procesamos tabla OBL ----------//
+                if (Arr_OBL != null || Arr_OBL.Length == 0)
                 {
-                    //--------- Procesamos tabla OBL ----------//
-                    if (Arr_OBL != null || Arr_OBL.Length == 0)
+                    for (Int32 i = 0; i < Arr_OBL.Length; ++i)
                     {
-                        for (Int32 i = 0; i < Arr_OBL.Length; ++i)
+                        String Arch_OBL = Arr_OBL[i].ToString();
+
+                        if (File.Exists(Arch_OBL))
                         {
-                            String Arch_OBL = Arr_OBL[i].ToString();
-
-                            if (File.Exists(Arch_OBL))
+                            if (Path.GetFileName(Arch_OBL).Substring(9, 5) == "50001")
                             {
-                                if (Path.GetFileName(Arch_OBL).Substring(9, 5) == "50001")
-                                {
-                                    Archivo_Destino = Crear_Carpetas.C50001_output + Path.GetFileName(Arch_OBL);
-                                    if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
-                                    File.Move(Arch_OBL, Archivo_Destino); // Mueve al 50001 
-                                }
-                                else
-                                {
-                                    Archivo_Destino = Crear_Carpetas.C50003_output + Path.GetFileName(Arch_OBL);
-                                    if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
-                                    File.Move(Arch_OBL, Archivo_Destino); // Mueve al 50003
-                                }
+                                Archivo_Destino = Crear_Carpetas.C50001_output + Path.GetFileName(Arch_OBL);
+                                if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
+                                File.Move(Arch_OBL, Archivo_Destino); // Mueve al 50001 
                             }
-                        }//for
-                    }//if
-
-
-
-                    //--------- Procesamos tabla OBS ----------//
-                    if (Arr_OBS != null || Arr_OBS.Length == 0)
-                    {
-                        for (Int32 i = 0; i < Arr_OBS.Length; ++i)
-                        {
-                            String Arch_OBS = Arr_OBS[i].ToString();
-
-                            if (File.Exists(Arch_OBS))
+                            else
                             {
-                                if (Path.GetFileName(Arch_OBS).Substring(9, 5) == "50001")
-                                {
-                                    Archivo_Destino = Crear_Carpetas.C50001_output + Path.GetFileName(Arch_OBS);
-                                    if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
-                                    File.Move(Arch_OBS, Archivo_Destino); // Mueve al 50001
-                                }
-                                else
-                                {
-                                    Archivo_Destino = Crear_Carpetas.C50003_output + Path.GetFileName(Arch_OBS);
-                                    if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
-                                    File.Move(Arch_OBS, Archivo_Destino); // Mueve al 50003
-                                }
+                                Archivo_Destino = Crear_Carpetas.C50003_output + Path.GetFileName(Arch_OBL);
+                                if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
+                                File.Move(Arch_OBL, Archivo_Destino); // Mueve al 50003
                             }
-                        }//For
-                    }//if
+                        }
+                    }//for
+                }//if
 
-                }//if wtipo
 
 
-                if (wtipo == "SVH")
+                //--------- Procesamos tabla OBS ----------//
+                if (Arr_OBS != null || Arr_OBS.Length == 0)
                 {
-                    //--------- Procesamos tabla SVH ----------//
-                    if (Arr_SVH != null || Arr_SVH.Length == 0)
+                    for (Int32 i = 0; i < Arr_OBS.Length; ++i)
                     {
-                        for (Int32 i = 0; i < Arr_SVH.Length; ++i)
+                        String Arch_OBS = Arr_OBS[i].ToString();
+
+                        if (File.Exists(Arch_OBS))
                         {
-                            String Arch_SVH = Arr_SVH[i].ToString();
-
-                            if (File.Exists(Arch_SVH))
+                            if (Path.GetFileName(Arch_OBS).Substring(9, 5) == "50001")
                             {
-                                if (Path.GetFileName(Arch_SVH).Substring(9, 5) == "50001")
-                                {
-                                    Archivo_Destino = Crear_Carpetas.C50001_output + Path.GetFileName(Arch_SVH);
-                                    if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
-                                    File.Move(Arch_SVH, Archivo_Destino); // Mueve a Backup 50001
-                                }
-                                else
-                                {
-                                    Archivo_Destino = Crear_Carpetas.C50003_output + Path.GetFileName(Arch_SVH);
-                                    if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
-                                    File.Move(Arch_SVH, Archivo_Destino); // Mueve a Backup 50003
-                                }
+                                Archivo_Destino = Crear_Carpetas.C50001_output + Path.GetFileName(Arch_OBS);
+                                if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
+                                File.Move(Arch_OBS, Archivo_Destino); // Mueve al 50001
                             }
-                        }//For
-                    }//if
-
-
-                    //--------- Procesamos tabla SVD ----------//
-                    if (Arr_SVD != null || Arr_SVD.Length == 0)
-                    {
-                        for (Int32 i = 0; i < Arr_SVD.Length; ++i)
-                        {
-                            String Arch_SVD = Arr_SVD[i].ToString();
-
-                            if (File.Exists(Arch_SVD))
+                            else
                             {
-                                if (Path.GetFileName(Arch_SVD).Substring(9, 5) == "50001")
-                                {
-                                    Archivo_Destino = Crear_Carpetas.C50001_output + Path.GetFileName(Arch_SVD);
-                                    if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
-                                    File.Move(Arch_SVD, Archivo_Destino); // Mueve al 50001
-                                }
-                                else
-                                {
-                                    Archivo_Destino = Crear_Carpetas.C50003_output + Path.GetFileName(Arch_SVD);
-                                    if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
-                                    File.Move(Arch_SVD, Archivo_Destino); // Mueve al 50003
-                                }
+                                Archivo_Destino = Crear_Carpetas.C50003_output + Path.GetFileName(Arch_OBS);
+                                if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
+                                File.Move(Arch_OBS, Archivo_Destino); // Mueve al 50003
                             }
-                        }//For
-                    }//if
-                }// if wtipo
+                        }
+                    }//For
+                }//if
 
 
-                if (wtipo == "IHT")
+
+                //--------- Procesamos tabla SVH ----------//
+                if (Arr_SVH != null || Arr_SVH.Length == 0)
                 {
-                    //--------- Procesamos tabla IHT ----------//
-                    if (Arr_IHT != null || Arr_IHT.Length == 0)
+                    for (Int32 i = 0; i < Arr_SVH.Length; ++i)
                     {
-                        for (Int32 i = 0; i < Arr_IHT.Length; ++i)
-                        {
-                            String Arch_IHT = Arr_IHT[i].ToString();
+                        String Arch_SVH = Arr_SVH[i].ToString();
 
-                            if (File.Exists(Arch_IHT))
+                        if (File.Exists(Arch_SVH))
+                        {
+                            if (Path.GetFileName(Arch_SVH).Substring(9, 5) == "50001")
                             {
-                                if (Path.GetFileName(Arch_IHT).Substring(9, 5) == "50001")
-                                {
-                                    Archivo_Destino = Crear_Carpetas.C50001_output + Path.GetFileName(Arch_IHT);
-                                    if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
-                                    File.Move(Arch_IHT, Archivo_Destino); // Mueve al 50001
-                                }
-                                else
-                                {
-                                    Archivo_Destino = Crear_Carpetas.C50003_output + Path.GetFileName(Arch_IHT);
-                                    if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
-                                    File.Move(Arch_IHT, Archivo_Destino); // Mueve al 50003
-                                }
+                                Archivo_Destino = Crear_Carpetas.C50001_output + Path.GetFileName(Arch_SVH);
+                                if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
+                                File.Move(Arch_SVH, Archivo_Destino); // Mueve a Backup 50001
                             }
-                        }//For
-                    }//if
-                }//if wtipo
+                            else
+                            {
+                                Archivo_Destino = Crear_Carpetas.C50003_output + Path.GetFileName(Arch_SVH);
+                                if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
+                                File.Move(Arch_SVH, Archivo_Destino); // Mueve a Backup 50003
+                            }
+                        }
+                    }//For
+                }//if
+
+
+                //--------- Procesamos tabla SVD ----------//
+                if (Arr_SVD != null || Arr_SVD.Length == 0)
+                {
+                    for (Int32 i = 0; i < Arr_SVD.Length; ++i)
+                    {
+                        String Arch_SVD = Arr_SVD[i].ToString();
+
+                        if (File.Exists(Arch_SVD))
+                        {
+                            if (Path.GetFileName(Arch_SVD).Substring(9, 5) == "50001")
+                            {
+                                Archivo_Destino = Crear_Carpetas.C50001_output + Path.GetFileName(Arch_SVD);
+                                if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
+                                File.Move(Arch_SVD, Archivo_Destino); // Mueve al 50001
+                            }
+                            else
+                            {
+                                Archivo_Destino = Crear_Carpetas.C50003_output + Path.GetFileName(Arch_SVD);
+                                if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
+                                File.Move(Arch_SVD, Archivo_Destino); // Mueve al 50003
+                            }
+                        }
+                    }//For
+                }//if
+
+
+                //--------- Procesamos tabla IHT ----------//
+                if (Arr_IHT != null || Arr_IHT.Length == 0)
+                {
+                    for (Int32 i = 0; i < Arr_IHT.Length; ++i)
+                    {
+                        String Arch_IHT = Arr_IHT[i].ToString();
+
+                        if (File.Exists(Arch_IHT))
+                        {
+                            if (Path.GetFileName(Arch_IHT).Substring(9, 5) == "50001")
+                            {
+                                Archivo_Destino = Crear_Carpetas.C50001_output + Path.GetFileName(Arch_IHT);
+                                if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
+                                File.Move(Arch_IHT, Archivo_Destino); // Mueve al 50001
+                            }
+                            else
+                            {
+                                Archivo_Destino = Crear_Carpetas.C50003_output + Path.GetFileName(Arch_IHT);
+                                if (File.Exists(Archivo_Destino)) File.Delete(Archivo_Destino);
+                                File.Move(Arch_IHT, Archivo_Destino); // Mueve al 50003
+                            }
+                        }
+                    }//For
+                }//if
 
                 exito = true;
-
-                String Wmsg = "";
-                if (exito == true)
-                {
-                    Wmsg = "OK";
-                }
-                else
-                {
-                    Wmsg = "Error";
-                }
-                LogUtil.Graba_Log(Interface, "   Finaliza Archiva_TXT, exito: " + Wmsg, false, "");
-
                 return exito;
-
             }
             catch (Exception ex)
             {
@@ -1121,11 +1068,8 @@ namespace CapaInterface
 
         }
 
-        private bool Borra_FTP(string[] Arr_OBL, string[] Arr_OBS, string[] Arr_SVH, string[] Arr_SVD, string[] Arr_IHT, string ruta, string wtipo)
+        private bool Borra_FTP(string[] Arr_OBL, string[] Arr_OBS, string[] Arr_SVH, string[] Arr_SVD, string[] Arr_IHT, string ruta)
         {
-
-            LogUtil.Graba_Log(Interface, "   Inicia Borra_FTP, tipo: " + wtipo, false, "");
-
             bool exito = false;
             ruta = ruta.Replace("\\", "");
             string Archivo_Ftp = "";
@@ -1136,86 +1080,61 @@ namespace CapaInterface
                 {
                     session.Open(sessionOptions); // Connect
 
-                    if (wtipo == "OBL")
+
+                    //--------- Procesamos tabla OBL ----------//
+                    if (Arr_OBL != null || Arr_OBL.Length == 0)
                     {
-                        //--------- Procesamos tabla OBL ----------//
-                        if (Arr_OBL != null || Arr_OBL.Length == 0)
+                        for (Int32 i = 0; i < Arr_OBL.Length; ++i)
                         {
-                            for (Int32 i = 0; i < Arr_OBL.Length; ++i)
-                            {
-                                Archivo_Ftp = Arr_OBL[i].ToString();
-                                session.RemoveFiles("/Peru/730/" + ruta + "/output/" + Path.GetFileName(Archivo_Ftp)); // Borramos el archivo del FTP
-                            }
+                            Archivo_Ftp = Arr_OBL[i].ToString();
+                            session.RemoveFiles("/Peru/730/" + ruta + "/output/" + Path.GetFileName(Archivo_Ftp)); // Borramos el archivo del FTP
                         }
+                    }
 
 
-                        //--------- Procesamos tabla OBS ----------//
-                        if (Arr_OBS != null || Arr_OBS.Length == 0)
-                        {
-                            for (Int32 i = 0; i < Arr_OBS.Length; ++i)
-                            {
-                                Archivo_Ftp = Arr_OBS[i].ToString();
-                                session.RemoveFiles("/Peru/730/" + ruta + "/output/" + Path.GetFileName(Archivo_Ftp)); // Borramos el archivo del FTP
-                            }
-                        }
-                    }// if wtipo
-
-
-                    if (wtipo == "SVH")
+                    //--------- Procesamos tabla OBS ----------//
+                    if (Arr_OBS != null || Arr_OBS.Length == 0)
                     {
-
-
-                        //--------- Procesamos tabla SVH ----------//
-                        if (Arr_SVH != null || Arr_SVH.Length == 0)
+                        for (Int32 i = 0; i < Arr_OBS.Length; ++i)
                         {
-                            for (Int32 i = 0; i < Arr_SVH.Length; ++i)
-                            {
-                                Archivo_Ftp = Arr_SVH[i].ToString();
-                                session.RemoveFiles("/Peru/730/" + ruta + "/output/" + Path.GetFileName(Archivo_Ftp)); // Borramos el archivo del FTP
-                            }
+                            Archivo_Ftp = Arr_OBS[i].ToString();
+                            session.RemoveFiles("/Peru/730/" + ruta + "/output/" + Path.GetFileName(Archivo_Ftp)); // Borramos el archivo del FTP
                         }
+                    }
 
 
-                        //--------- Procesamos tabla SVD ----------//
-                        if (Arr_SVD != null || Arr_SVD.Length == 0)
-                        {
-                            for (Int32 i = 0; i < Arr_SVD.Length; ++i)
-                            {
-                                Archivo_Ftp = Arr_SVD[i].ToString();
-                                session.RemoveFiles("/Peru/730/" + ruta + "/output/" + Path.GetFileName(Archivo_Ftp)); // Borramos el archivo del FTP
-                            }
-                        }
-                    }// if wtipo
-
-
-                    if (wtipo == "IHT")
+                    //--------- Procesamos tabla SVH ----------//
+                    if (Arr_SVH != null || Arr_SVH.Length == 0)
                     {
-
-                        //--------- Procesamos tabla IHT ----------//
-                        if (Arr_IHT != null || Arr_IHT.Length == 0)
+                        for (Int32 i = 0; i < Arr_SVH.Length; ++i)
                         {
-                            for (Int32 i = 0; i < Arr_IHT.Length; ++i)
-                            {
-                                Archivo_Ftp = Arr_IHT[i].ToString();
-                                session.RemoveFiles("/Peru/730/" + ruta + "/output/" + Path.GetFileName(Archivo_Ftp)); // Borramos el archivo del FTP
-                            }
+                            Archivo_Ftp = Arr_SVH[i].ToString();
+                            session.RemoveFiles("/Peru/730/" + ruta + "/output/" + Path.GetFileName(Archivo_Ftp)); // Borramos el archivo del FTP
                         }
-                    }// if wtipo
+                    }
 
+
+                    //--------- Procesamos tabla SVD ----------//
+                    if (Arr_SVD != null || Arr_SVD.Length == 0)
+                    {
+                        for (Int32 i = 0; i < Arr_SVD.Length; ++i)
+                        {
+                            Archivo_Ftp = Arr_SVD[i].ToString();
+                            session.RemoveFiles("/Peru/730/" + ruta + "/output/" + Path.GetFileName(Archivo_Ftp)); // Borramos el archivo del FTP
+                        }
+                    }
+
+                    //--------- Procesamos tabla IHT ----------//
+                    if (Arr_IHT != null || Arr_IHT.Length == 0)
+                    {
+                        for (Int32 i = 0; i < Arr_IHT.Length; ++i)
+                        {
+                            Archivo_Ftp = Arr_IHT[i].ToString();
+                            session.RemoveFiles("/Peru/730/" + ruta + "/output/" + Path.GetFileName(Archivo_Ftp)); // Borramos el archivo del FTP
+                        }
+                    }
                 }//using
                 exito = true;
-
-                String Wmsg = "";
-                if (exito == true)
-                {
-                    Wmsg = "OK";
-                }
-                else
-                {
-                    Wmsg = "Error";
-                }
-                LogUtil.Graba_Log(Interface, "   Finaliza Borra_FTP, exito: " + Wmsg, false, "");
-
                 return exito;
             }//try
             catch

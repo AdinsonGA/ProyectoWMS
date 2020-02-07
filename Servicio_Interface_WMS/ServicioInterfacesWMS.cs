@@ -12,6 +12,7 @@ using System.Timers;
 using CapaInterface;
 using CapaDatos;
 using System.Configuration;
+//using System.Threading;
 
 //using WinSCP;
 //using System.Data.SqlClient;
@@ -54,42 +55,66 @@ namespace CapaServicio
         // timer para actualizar lista con tabla tabgen.dbf
         Timer tmactulista = null;
 
- 
+        //timer stock WMS
+        Timer tmservicio_stock_WMS = null;
+        Int32 wenproceso_stock_wms = 0;
+
+        //timer NC ASN carrito
+        Timer tmservicio_NC_carrito = null;
+        Int32 wenproceso_NC_carrito = 0;
+
+        //timer NC ASN carrito
+        Timer tmservicio_NC_catalogo = null;
+        Int32 wenproceso_NC_catalogo = 0;
+
         public ServicioInterfaceWMS()
         {
-            InitializeComponent();
+            double minutos = 60000;
 
+            InitializeComponent();
             // Timer para actualizar lista de TABGEN.DBF
-            tmactulista = new Timer(1000); // initial start after 1 second
+            tmactulista = new Timer(1 * minutos); // initial start after 1 second
             tmactulista.Elapsed += new ElapsedEventHandler(tmactulista_Elapsed);
 
             // Prescripciones
-            tmservicio_Prescripciones = new Timer(300000);
+            tmservicio_Prescripciones = new Timer(5 * minutos);
             tmservicio_Prescripciones.Elapsed += new ElapsedEventHandler(tmpServicio_Prescripciones_Elapsed);
 
             // Purchase            
-            tmservicio_Purchase = new Timer(300000);
+            tmservicio_Purchase = new Timer(30 * minutos);
             tmservicio_Purchase.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_Purchase);
 
             // ASN Purchase
-            tmservicio_ASN_Purchase = new Timer(300000);
+            tmservicio_ASN_Purchase = new Timer(2 * minutos); //5
             tmservicio_ASN_Purchase.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_ASN_Purchase);
 
             // Leer archivos del Ftp
-            tmservicio_Leer_FTP = new Timer(300000);
+            tmservicio_Leer_FTP = new Timer(3 * minutos);
             tmservicio_Leer_FTP.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_Leer_FTP);
 
             // ASN Devoluciones de Tiendas
-            tmservicio_ASN_Devol = new Timer(600000);//600000
+            tmservicio_ASN_Devol = new Timer(10 * minutos);
             tmservicio_ASN_Devol.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_ASN_Devol);
 
             // order HDR, DTL carrito
-            tmservicio_HDR_DTL = new Timer(300000);//300000
-            tmservicio_HDR_DTL.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_HDR_DTL);
+            tmservicio_HDR_DTL = new Timer(5 * minutos); //5
+            tmservicio_HDR_DTL.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_HDR_DTL_Carrito);
 
             // order HDR, DTL catalogo
-            tmservicio_HDR_DTL_catalogo = new Timer(300000);//300000
+            tmservicio_HDR_DTL_catalogo = new Timer(5 * minutos);
             tmservicio_HDR_DTL_catalogo.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_HDR_DTL_catalogo);
+
+            // stock
+            tmservicio_stock_WMS = new Timer(1 * minutos);
+            tmservicio_stock_WMS.Elapsed += new ElapsedEventHandler(tmpServicioStock_WMS);
+
+            //NC carrito
+            tmservicio_NC_carrito = new Timer(10 * minutos);
+            tmservicio_NC_carrito.Elapsed += new ElapsedEventHandler(tmpServicio_NC_carrito);
+
+            //NC catalogo
+            tmservicio_NC_catalogo = new Timer(10 * minutos);
+            tmservicio_NC_catalogo.Elapsed += new ElapsedEventHandler(tmpServicio_NC_catalogo);
 
         }
 
@@ -97,12 +122,15 @@ namespace CapaServicio
 
         void tmactulista_Elapsed(object sender, ElapsedEventArgs e)
         {
+            ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
             try
             {
+
                 Timer timer = (Timer)sender;
                 timer.Interval = 60 * 60 * 1000;      // Change the interval to whatever (1 hora)
                 DatosGenerales.Llena_CDxAlm();
                 LogUtil.Graba_Log("SERVICIO", ConfigurationManager.AppSettings["M011"].ToString(), false, "");
+
             }
             catch (Exception ex)
             {
@@ -114,8 +142,10 @@ namespace CapaServicio
 
         void tmpServicio_Prescripciones_Elapsed(object sender, ElapsedEventArgs e)
         {
+            ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
             try
             {
+
                 if (ConfigurationManager.AppSettings["processPrescrip"] == "1")
                 {
                     // verificar si el servicio se esta ejecutando
@@ -126,13 +156,13 @@ namespace CapaServicio
                         oprescrip.Genera_Interface_Prescripcion(1); // 1=retail
                         oprescrip.Genera_Interface_Prescripcion(2); // 2=no retail
                         wenproceso_Prescripciones = 0;
+
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 wenproceso_Prescripciones = 0;
-
             }
 
         }
@@ -140,6 +170,7 @@ namespace CapaServicio
         //**************************************************************************** Por JC
         void tmpServicio_Elapsed_Purchase(object sender, ElapsedEventArgs e)
         {
+            ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
             try
             {
                 if (ConfigurationManager.AppSettings["processPurchase"] == "1")
@@ -151,13 +182,14 @@ namespace CapaServicio
                         Purchase opurchase = new Purchase();
                         opurchase.Genera_Interface_Purchase();
                         wenproceso_Purchase = 0;
+
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
                 wenproceso_Purchase = 0;
+
             }
 
         }
@@ -165,6 +197,7 @@ namespace CapaServicio
         //**************************************************************************** Por JC
         void tmpServicio_Elapsed_ASN_Purchase(object sender, ElapsedEventArgs e)
         {
+            ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
             try
             {
                 if (ConfigurationManager.AppSettings["process_ASN_Purchase"] == "1")
@@ -172,17 +205,18 @@ namespace CapaServicio
                     // verificar si el servicio se esta ejecutando
                     if (wenproceso_ASN_Purchase == 0)
                     {
+
                         wenproceso_ASN_Purchase = 1;
                         Asn_Purchase oasn_purchase = new Asn_Purchase();
-                        //oasn_purchase.Genera_Interface_Purchase();
                         oasn_purchase.Genera_Interface_Asn_Purchase();
                         wenproceso_ASN_Purchase = 0;
+
+
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
                 wenproceso_ASN_Purchase = 0;
             }
 
@@ -191,6 +225,7 @@ namespace CapaServicio
         //**************************************************************************** Por JC
         void tmpServicio_Elapsed_Leer_FTP(object sender, ElapsedEventArgs e)
         {
+            ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
             try
             {
                 if (ConfigurationManager.AppSettings["processLeerFTP"] == "1")
@@ -198,6 +233,7 @@ namespace CapaServicio
                     // verificar si el servicio se esta ejecutando
                     if (wenproceso_Leer_FTP == 0)
                     {
+
                         wenproceso_Leer_FTP = 1;
                         Leer_Ftp oLeer_Ftp = new Leer_Ftp();
                         oLeer_Ftp.Genera_Interface_Lectura();
@@ -205,34 +241,37 @@ namespace CapaServicio
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
                 wenproceso_Leer_FTP = 0;
             }
 
         }
 
         //**************************************************************************** Por JC
-        void tmpServicio_Elapsed_HDR_DTL(object sender, ElapsedEventArgs e)  //carrito de compras
+        void tmpServicio_Elapsed_HDR_DTL_Carrito(object sender, ElapsedEventArgs e)  //carrito de compras
         {
+            ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
             try
             {
-                if (ConfigurationManager.AppSettings["process_HDR_HDL"] == "1")
+                if (ConfigurationManager.AppSettings["process_HDR_HDL_carrito"] == "1")
                 {
                     // verificar si el servicio se esta ejecutando
                     if (wenproceso_HDR_DTL == 0)
                     {
+
                         wenproceso_HDR_DTL = 1;
                         Pedidos_Carrito ohdr_dtl = new Pedidos_Carrito();
-                        ohdr_dtl.Genera_Interface_OrdDesp();
+                        ohdr_dtl.Genera_Interface_Carrito_Maestro(); // maestros de carrito
+                        ohdr_dtl.Genera_Interface_Carrito_Pedido(); // orden de pedidos de carrito
                         wenproceso_HDR_DTL = 0;
+
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                //ex.Message.ToString();
                 wenproceso_HDR_DTL = 0;
             }
 
@@ -241,6 +280,7 @@ namespace CapaServicio
         //****************************************************************************
         void tmpServicio_Elapsed_ASN_Devol(object sender, ElapsedEventArgs e)
         {
+            ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
             try
             {
                 if (ConfigurationManager.AppSettings["process_ASN_Devol"] == "1")
@@ -248,6 +288,7 @@ namespace CapaServicio
                     // verificar si el servicio se esta ejecutando
                     if (wenproceso_ASN_Devol == 0)
                     {
+
                         wenproceso_ASN_Devol = 1;
                         ASN_Devolucion odev = new ASN_Devolucion();
                         odev.Genera_Interface_ASN_Devolucion();
@@ -265,27 +306,127 @@ namespace CapaServicio
 
         //****************************************************************************
         void tmpServicio_Elapsed_HDR_DTL_catalogo(object sender, ElapsedEventArgs e)
+
         {
+            ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
             try
             {
                 if (ConfigurationManager.AppSettings["process_HDR_HDL_catalogo"] == "1")
                 {
                     // verificar si el servicio se esta ejecutando
+
                     if (wenproceso_HDR_DTL_catalogo == 0)
                     {
+
                         wenproceso_HDR_DTL_catalogo = 1;
                         Pedidos_Catalogo ohdr_dtl_catalogo = new Pedidos_Catalogo();
-                        ohdr_dtl_catalogo.Genera_Interface_Catalogo_Pedido();
+                        ohdr_dtl_catalogo.Genera_Interface_Catalogo_Maestro(); // maestros de catalogo
+                        //System.Threading.Timer sleep = new System.Threading.Timer();
+
+                       
+                        ohdr_dtl_catalogo.Genera_Interface_Catalogo_Pedido(); //orden de pedido de catalogo
                         wenproceso_HDR_DTL_catalogo = 0;
                     }
                 }
             }
             catch (Exception)
             {
-
                 wenproceso_HDR_DTL_catalogo = 0;
             }
 
+        }
+
+        void tmpServicioStock_WMS(object sender, ElapsedEventArgs e)
+        {
+
+            ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
+
+            //string cadena_conexion = Conexion.conexion;
+
+            //LogUtil.Graba_Log("PRUEBA", "FLAG ACTUALIZADO : " + cadena_conexion, true, "");
+
+            try
+            {
+
+                if (ConfigurationManager.AppSettings["process_stock_WMS"] == "1")
+                {
+                    if (Convert.ToDateTime(DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString()).ToString("HH:mm") == ConfigurationManager.AppSettings["hora_stock_1"].ToString() ||  //verificar las horas configuradas para la actualizacion de stock
+                        Convert.ToDateTime(DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString()).ToString("HH:mm") == ConfigurationManager.AppSettings["hora_stock_2"].ToString() ||
+                        Convert.ToDateTime(DateTime.Now.Hour.ToString() + ":" + DateTime.Now.Minute.ToString()).ToString("HH:mm") == ConfigurationManager.AppSettings["hora_stock_3"].ToString())
+
+                    {
+                        if (wenproceso_stock_wms == 0)
+                        {
+
+                            wenproceso_stock_wms = 1;
+                            Stock objStock = new Stock();
+                            objStock.LeerStock();
+                            wenproceso_stock_wms = 0;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ex.Message.ToString();
+
+                wenproceso_stock_wms = 0;
+            }
+
+        }
+
+        //nuevo ASN
+
+        void tmpServicio_NC_carrito(object sender, ElapsedEventArgs e)  //carrito de compras
+        {
+            ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
+            try
+            {
+                if (ConfigurationManager.AppSettings["process_NC_carrito"] == "1")
+                {
+                    // verificar si el servicio se esta ejecutando
+                    if (wenproceso_NC_carrito == 0)
+                    {
+                        wenproceso_NC_carrito = 1;
+                        //Pedidos_Carrito ohdr_dtl = new Pedidos_Carrito();
+                        ASN_Carrito oNC_carrito = new ASN_Carrito();
+                        //ohdr_dtl.Genera_Interface_OrdDesp();
+                        oNC_carrito.GenerarInterfaceNC_carrito();
+                        wenproceso_NC_carrito = 0;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                wenproceso_NC_carrito = 0;
+            }
+
+        }
+
+        void tmpServicio_NC_catalogo(object sender, ElapsedEventArgs e)
+        {
+            ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
+            try
+            {
+                if (ConfigurationManager.AppSettings["process_NC_catalogo"] == "1")
+                {
+                    // verificar si el servicio se esta ejecutando
+                    if (wenproceso_NC_catalogo == 0)
+                    {
+                        wenproceso_NC_catalogo = 1;
+                        //Pedidos_Carrito ohdr_dtl = new Pedidos_Carrito();
+                        ASN_Catalogo oNC_catalogo = new ASN_Catalogo();
+                        //ohdr_dtl.Genera_Interface_OrdDesp();
+
+                        oNC_catalogo.GeneraInterfaceNC_catalogo();
+                        wenproceso_NC_catalogo = 0;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                wenproceso_NC_catalogo = 0;
+            }
         }
 
         protected override void OnStart(string[] args)
@@ -302,6 +443,10 @@ namespace CapaServicio
             ///*interface hdr/dtl*/
             tmservicio_HDR_DTL_catalogo.Start();
             tmservicio_HDR_DTL.Start();
+            tmservicio_stock_WMS.Start();
+            //nuevo asn
+            tmservicio_NC_carrito.Start();
+            tmservicio_NC_catalogo.Start();
 
         }
 
@@ -317,7 +462,10 @@ namespace CapaServicio
             ///*interface hdr/dtl*/
             tmservicio_HDR_DTL_catalogo.Stop();
             tmservicio_HDR_DTL.Stop();
-
+            tmservicio_stock_WMS.Stop();
+            //nuevo asn
+            tmservicio_NC_carrito.Stop();
+            tmservicio_NC_catalogo.Stop();
         }
 
         internal void TestStartupAndStop()

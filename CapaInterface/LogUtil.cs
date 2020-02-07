@@ -68,12 +68,21 @@ namespace CapaInterface
         {
             try
             {
-                string filtxt = Crear_Carpetas.LOG + "LOG" + interfaz.Trim() + ".TXT";
+                //Crear_Carpetas objLog = new Crear_Carpetas();
+                //string ruta_log = Crear_Carpetas.LOG.ToString();
+                string filtxt =  Crear_Carpetas.LOG + "LOG" + interfaz.Trim() + ".TXT";
 
                 using (StreamWriter writer = new StreamWriter(filtxt, true))
                 {
-                    //writer.WriteLine("*********** ERROR ");
-                    writer.WriteLine("Fecha: " + DateTime.Now.ToString() + " " + error_msg);
+                    if (NomArchivo.Trim() == "")
+                    {
+                        writer.WriteLine("Fecha: " + DateTime.Now.ToString() + " " + error_msg);
+                    }
+                    else
+                    {
+                        writer.WriteLine("Fecha: " + DateTime.Now.ToString() + " " + error_msg + " Archivo: " + NomArchivo);
+                    }
+
                 }
 
                 //if (flag_msg == true)
@@ -105,15 +114,14 @@ namespace CapaInterface
                 //}
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                //LogUtil.Graba_Log("ERROR AL ESCRIBIR EN EL ARCHIVO LOG", "" + " ERROR: " + ex.ToString(), true, "");
+                LogUtil.Graba_Log("ERROR AL ESCRIBIR EN EL ARCHIVO LOG", "" + " ERROR: " + ex.ToString(), true, "");
 
             }
 
             return;
         }
-
 
         //public static void Graba_WMS_Envios(string NroPedido, int Cantidad, string CodAlmacen, DateTime FechaHora)
         //{

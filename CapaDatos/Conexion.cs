@@ -14,18 +14,26 @@ namespace CapaDatos
     {
 
         public static bool FLPRUEBA = false;
- 
+
+        public static string Serv_Postgress = ConfigurationManager.AppSettings["Serv_Postgress"];
+        public static string DB_Postgress = ConfigurationManager.AppSettings["DB_Postgress"];
+        public static string User_Postgress = ConfigurationManager.AppSettings["User_Postgress"];
+        public static string Pass_postgress = ConfigurationManager.AppSettings["Pass_postgress"];
+        public static string Puert_Postgress = ConfigurationManager.AppSettings["Puert_Postgress"];
+
         //************** Datos conexion SQL
         public static string conexion
         {
             get
             {
-                if (FLPRUEBA)
-                    return ConfigurationManager.ConnectionStrings["SQL_Test"].ConnectionString;
-                else
+                if (ConfigurationManager.AppSettings["FlagServProd"].ToString() == "1")
+
                     return ConfigurationManager.ConnectionStrings["SQL"].ConnectionString;
+                else
+                    return ConfigurationManager.ConnectionStrings["SQL_Test"].ConnectionString;
             }
         }
+
 
 
         //************** Datos conexion con dbf
@@ -37,10 +45,12 @@ namespace CapaDatos
         {
             get
             {
-                if (FLPRUEBA)
-                    return ConfigurationManager.ConnectionStrings["Dbf1_Test"].ConnectionString;
-                else
+                if (ConfigurationManager.AppSettings["FlagConexDBFs"].ToString() == "1")
+
                     return ConfigurationManager.ConnectionStrings["Dbf1"].ConnectionString;
+
+                else
+                    return ConfigurationManager.ConnectionStrings["Dbf1_Test"].ConnectionString;
             }
         }
 
@@ -48,10 +58,12 @@ namespace CapaDatos
         {
             get
             {
-                if (FLPRUEBA)
-                    return ConfigurationManager.ConnectionStrings["Dbf2_Test"].ConnectionString;
-                else
+                if (ConfigurationManager.AppSettings["FlagConexDBFs"].ToString() == "1")
+
                     return ConfigurationManager.ConnectionStrings["Dbf2"].ConnectionString;
+
+                else
+                    return ConfigurationManager.ConnectionStrings["Dbf2_Test"].ConnectionString;
             }
         }
 
@@ -60,8 +72,8 @@ namespace CapaDatos
         //************** Datos conexion INTRANET
         public static string conexion_Postgre
         {
-            get { return "Server= '172.28.7.20'; Port= '5432'; User= 'admin'; Password = 'batanet'; Database = 'scomercial'; "; }
-      
+            //get { return "Server= '172.28.7.20'; Port= '5432'; User= 'admin_wms'; Password = '**intapp--'; Database = 'scomercial'; "; }
+            get { return "Server='" + Serv_Postgress + "';Port='" + Puert_Postgress + "';User= '" + User_Postgress + "';Password ='" + Pass_postgress + "';Database ='" + DB_Postgress + "';"; }
         }
 
 
@@ -69,9 +81,6 @@ namespace CapaDatos
         {
             NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf1"], "dmendoza", "Bata2013*");
             NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf2"], "dmendoza", "Bata2013*");
-            //return true;
-
-
             return true;
 
         }
@@ -86,12 +95,12 @@ namespace CapaDatos
                 if (retail_noretail == 1)
                 {
                     conex = Conn2;
-                    NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf2"], "SERVICIOS", "servicios123");
+                    NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf2"], ConfigurationManager.AppSettings["pathDbf2_user"], ConfigurationManager.AppSettings["pathDbf2_pass"]);
                 }
                 else
                 {
                     conex = Conn1;
-                    NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf1"], "SERVICIOS", "servicios123");
+                    NetworkShare.ConnectToShare(ConfigurationManager.AppSettings["pathDbf1"], ConfigurationManager.AppSettings["pathDbf1_user"], ConfigurationManager.AppSettings["pathDbf1_pass"]);
                 }
 
 
@@ -181,10 +190,49 @@ namespace CapaDatos
             {
                 // omitido
                 //LogHandle.Graba_Log("DEVOL", "ERROR CONSULTAR DATA SQL: "+ex.Message); // OJO POR MIENTRAS
-                msgerror = "ERROR CONSULTAR DATA SQL: " + ex.Message;
+                msgerror = "ERROR CONSULTAR SQL: " + ex.Message;
+
             }
 
             return dt;
         }
+
+        public static DataTable Obt_maestros(string sqlquery, Int32 dias) //Obtiene los maestros de Ecommerce y Aquarella
+        {
+            DataTable dt = new DataTable();
+            //msgerror = "";
+
+            try
+            {
+                using (SqlConnection cn = new SqlConnection(Conexion.conexion))
+                {
+                    if (cn.State == 0) cn.Open();
+                    using (SqlCommand cmd = new SqlCommand(sqlquery, cn))
+                    {
+                        cmd.CommandTimeout = 0;
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@dias", dias);
+                        //cmd.ExecuteNonQuery();
+                        using (var da = new SqlDataAdapter(cmd))
+                        {
+                            da.Fill(dt);
+                            if (cn != null)
+                                if (cn.State == ConnectionState.Open) cn.Close();
+                        }
+                    }
+                }
+            }
+
+
+            catch (Exception ex)
+            {
+                //msgerror = "ERROR CONSULTAR SQL: " + ex.Message;
+
+            }
+
+            return dt;
+        }
+
+
     }
 }

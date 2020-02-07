@@ -27,18 +27,13 @@ namespace CapaInterface
         DataSet dsc = null;
         string fechor = DateTime.Now.ToString("yyyyMMddHHmmss") + ".TXT";
 
-        string fileTXTc_A_50001 = "";
-        string fileTXTd_A_50001 = "";
-
-        string fileTXTc_A_50003 = "";
-        string fileTXTd_A_50003 = "";
-
         string fileTXTc_Cho = "";
         string fileTXTc_Lur = "";
 
         string fileTXTd_Cho = ""; //CD Chorrillos
         string fileTXTd_Lur = ""; //Cd Lurin
         string Interface = "ASN_PURCHASE";
+        Int32 Dias = Convert.ToInt32(ConfigurationManager.AppSettings["dias"]);
 
         public void Genera_Interface_Asn_Purchase()
         {
@@ -51,19 +46,11 @@ namespace CapaInterface
             string wcd = "";
             //************** File de texto
 
-            fileTXTc_A_50001 = Path.Combine(Crear_Carpetas.WORK, "ISH_A_" + fechor);
-            fileTXTd_A_50001 = Path.Combine(Crear_Carpetas.WORK, "ISL_A_" + fechor);
-
-            fileTXTc_A_50003 = Path.Combine(Crear_Carpetas.WORK, "ISH_A_" + fechor);
-            fileTXTd_A_50003 = Path.Combine(Crear_Carpetas.WORK, "ISL_A_" + fechor);
-
-
             fileTXTc_Cho = Path.Combine(Crear_Carpetas.WORK, "ISH_50001_C_" + fechor);
             fileTXTd_Cho = Path.Combine(Crear_Carpetas.WORK, "ISL_50001_C_" + fechor);
 
             fileTXTc_Lur = Path.Combine(Crear_Carpetas.WORK, "ISH_50003_L_" + fechor);
             fileTXTd_Lur = Path.Combine(Crear_Carpetas.WORK, "ISL_50003_L_" + fechor);
-
 
             try
             {
@@ -71,6 +58,7 @@ namespace CapaInterface
                 LogUtil.Graba_Log(Interface, "****** INICIO PROCESO ASN PURCHASE *******", false, "");
                 if (Obtiene_Asn_Purchase())
                 {
+                    //return;
                     for (int xi = 1; xi <= 2; xi++)
                     {
                         if (xi == 1)
@@ -82,12 +70,10 @@ namespace CapaInterface
                         {
                             if (Actualiza_Flag_Asn_Purchase())
                             {
+                                Archiva_TXT(wcd); // Si todo salio, Movemos de carpeta WORD a BACKUP
                                 exito = true;
                             }
-
-                            Archiva_TXT(wcd);
                         }
-
                     }
                 }
 
@@ -99,8 +85,6 @@ namespace CapaInterface
                 {
                     LogUtil.Graba_Log(Interface, "NO EXISTE INFORMACION A PROCESAR", false, "");
                 }
-
-
             }
             catch (Exception ex)
             {
@@ -114,16 +98,14 @@ namespace CapaInterface
         //****************************************************************************
 
 
-
         public bool Obtiene_Asn_Purchase()
         {
             bool exito = false;
 
-            ////-----------------------
+             ////-----------------------
             ////----- DETALLE ---------
             ////-----------------------
 
-            Procesa_Data_Det("A"); // Ambos (BA = Bata)
             Procesa_Data_Det("C"); // Solo Chorrillos
             Procesa_Data_Det("L"); // Solo Lurin
 
@@ -131,7 +113,6 @@ namespace CapaInterface
             ////----- CABECERA---------
             ////-----------------------
 
-            Procesa_Data_Cab("A"); // Ambos (BA = Bata)
             Procesa_Data_Cab("C"); // Solo Chorrillos
             Procesa_Data_Cab("L"); // Solo Lurin
 
@@ -145,67 +126,40 @@ namespace CapaInterface
         ***************/
         private bool Envia_FTP(string wcd)
         {
-            bool exito1, exito2, exito3, exito4, exito5, exito6, exito7, exito8 = false;
+            bool exito1, exito2, exito5, exito6 = false;
             int cont = 0;
 
             if (wcd == "50001")
             {
-                if (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_Cho)) && (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_A_50001))))
+                /* Enviando Cabecera*/
+                if (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_Cho)))
                 {
-                    exito1 = Send_FTP_WMS(fileTXTc_Cho, fileTXTc_Cho, "50001");
-                    exito2 = Send_FTP_WMS(fileTXTd_Cho, fileTXTd_Cho, "50001");
-                    exito3 = Send_FTP_WMS(fileTXTc_A_50001, fileTXTc_A_50001, "50001");
-                    exito4 = Send_FTP_WMS(fileTXTd_A_50001, fileTXTd_A_50001, "50001");
+                    exito1 = Send_FTP_WMS(fileTXTc_Cho, "/Peru/730/50001/input/" + Path.GetFileName(fileTXTc_Cho), "50001");
                     cont = cont + 1;
-
                 }
-                else if (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_Cho)) || (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_A_50001))))
+
+                /* Enviando Detalle*/
+                if (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTd_Cho)))
                 {
-                    if (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_Cho)))
-                    {
-                        exito1 = Send_FTP_WMS(fileTXTc_Cho, fileTXTc_Cho, "50001");
-                        exito2 = Send_FTP_WMS(fileTXTd_Cho, fileTXTd_Cho, "50001");
-                        cont = cont + 1;
-                    }
-                    else
-                    {
-                        exito3 = Send_FTP_WMS(fileTXTc_A_50001, fileTXTc_A_50001, "50001");
-                        exito4 = Send_FTP_WMS(fileTXTd_A_50001, fileTXTd_A_50001, "50001");
-                        cont = cont + 1;
-                    }
+                    exito2 = Send_FTP_WMS(fileTXTd_Cho, "/Peru/730/50001/input/" + Path.GetFileName(fileTXTd_Cho), "50001");
                 }
-
-
             }
-            else
+
+
+            if (wcd == "50003")
             {
-
-                if (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_Lur)) && (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_A_50003))))
+                /* Enviando Cabecera*/
+                if (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_Lur)))
                 {
-                    exito5 = Send_FTP_WMS(fileTXTc_Lur, fileTXTc_Lur, "50003");
-                    exito6 = Send_FTP_WMS(fileTXTd_Lur, fileTXTd_Lur, "50003");
-                    exito7 = Send_FTP_WMS(fileTXTc_A_50003, fileTXTc_A_50003, "50003");
-                    exito8 = Send_FTP_WMS(fileTXTd_A_50003, fileTXTd_A_50003, "50003");
+                    exito5 = Send_FTP_WMS(fileTXTc_Lur, "/Peru/730/50003/input/" + Path.GetFileName(fileTXTc_Lur), "50003");
                     cont = cont + 1;
-
                 }
-                else if (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_Lur)) || (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_A_50003))))
+
+                /* Enviando Detalle*/
+                if (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTd_Lur)))
                 {
-                    if (File.Exists(Crear_Carpetas.WORK + Path.GetFileName(fileTXTc_Lur)))
-                    {
-                        exito5 = Send_FTP_WMS(fileTXTc_Lur, fileTXTc_Lur, "50003");
-                        exito6 = Send_FTP_WMS(fileTXTd_Lur, fileTXTd_Lur, "50003");
-                        cont = cont + 1;
-                    }
-                    else
-                    {
-                        exito7 = Send_FTP_WMS(fileTXTc_A_50003, fileTXTc_A_50003, "50003");
-                        exito8 = Send_FTP_WMS(fileTXTd_A_50003, fileTXTd_A_50003, "50003");
-                        cont = cont + 1;
-                    }
-
+                    exito6 = Send_FTP_WMS(fileTXTd_Lur, "/Peru/730/50003/input/" + Path.GetFileName(fileTXTd_Lur), "50003");
                 }
-                
             }
 
             if (cont >= 1 && wcd == "50001")
@@ -220,31 +174,50 @@ namespace CapaInterface
                 return true;
             }
             else return false;
-       
+
         }
 
         /************** Actualiza_Flag_Purchase
-        * Metodo que actualiza el flag de envio de las prescripciones (para que no lo vuelva a enviar)
+        * Metodo que actualiza el flag de envio de las ASN (para que no lo vuelva a enviar, esto se da en el Postgres)
         ***************/
         private bool Actualiza_Flag_Asn_Purchase()
         {
             bool exito = false;
-
             using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
             {
                 try
                 {
                     if (cn.State == 0) cn.Open();
                     // Grabando al Postgres CABECERA
-                    for (
-                        int ix = 0; ix < dsc.Tables[0].Rows.Count; ix++)
+                    for (int ix = 0; ix < dsc.Tables[0].Rows.Count; ix++)
                     {
                         string wnro_ocompra = "";
+                        string wnro_parcial = "";
+                        string wcod_cadenad = "";
+
                         string wsql = "";
 
-                        wnro_ocompra = dsc.Tables[0].Rows[ix][1].ToString(); // Elige el campo
+                        // Se evalua campo Llave02 del Detalle del ASN
+                        // Para el caso de que el (Numero Parcial) venga vacio, es decir Solo viene el Num de orden
+                        if (dsc.Tables[0].Rows[ix][1].ToString().Length == 9)
+                        {
+                            wnro_ocompra = dsc.Tables[0].Rows[ix][1].ToString(); // Solo Numero de Orden
+                            wsql = "UPDATE TOCOMPRAPLX_ASN SET FLG_TXWMS = '1' WHERE NRO_OCOMPRA = '" + wnro_ocompra + "' AND NRO_PARCIAL = ' ' ";
+                        }
 
-                        wsql = "UPDATE TOCOMPRAPLX_ASN SET FLG_TXWMS = '1' WHERE NRO_OCOMPRA = '" + wnro_ocompra + "'";
+
+                        // Se evalua campo Llave02 del Detalle del ASN
+                        // Para el caso de que el (Numero Parcial) venga lleno, los 2 ultimos digitos del campo
+
+                        if (dsc.Tables[0].Rows[ix][1].ToString().Length > 9) //Para el caso de que el Numero Parcial venga lleno
+                        {
+                            wnro_ocompra = dsc.Tables[0].Rows[ix][1].ToString().Substring(0, 9); // Extraemos el Numero de Orden
+                            wnro_parcial = dsc.Tables[0].Rows[ix][1].ToString().Substring(9, 2); // Extraemos el Numero Parcial
+                            wcod_cadenad = dsc.Tables[0].Rows[ix][1].ToString().Substring(11, 2); // Extraemos la Cadena
+
+                            wsql = "UPDATE TOCOMPRAPLX_ASN SET FLG_TXWMS = '1' WHERE NRO_OCOMPRA = '" + wnro_ocompra + "' AND NRO_PARCIAL = '" + wnro_parcial + "' AND COD_CADENAD = '" + wcod_cadenad + "' ";
+                        }
+
                         using (NpgsqlCommand cmd = new NpgsqlCommand(wsql, cn))
                         {
                             cmd.CommandTimeout = 0;
@@ -253,10 +226,11 @@ namespace CapaInterface
                         }
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
                     if (cn != null)
                         if (cn.State == ConnectionState.Open) cn.Close();
+                    LogUtil.Graba_Log(Interface, "ERROR: " + ex.ToString(), true, "Actualiza_Flag_Asn_Purchase");
                 }
             }
 
@@ -272,144 +246,62 @@ namespace CapaInterface
                 Crear_Carpetas objCreaCarpeta = new Crear_Carpetas();
                 objCreaCarpeta.ArchivaInterface(CodAlmacen);
 
-
-                if (File.Exists(fileTXTc_Cho)) //CHORRILLOS
+                if (CodAlmacen == "50001") //cabecera
                 {
-                    if (CodAlmacen == "50001") //cabecera
+                    /* Movemos Cabecera */
+                    if (File.Exists(fileTXTc_Cho))
                     {
                         if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_Cho))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_Cho));
                         File.Move(fileTXTc_Cho, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_Cho)); // Try to move
                     }
-                    else
-                    {
-                        if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_Cho))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_Cho));
-                        File.Move(fileTXTc_Cho, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_Cho)); // Try to move
-                    }
-                }
 
-                if (File.Exists(fileTXTd_Cho))//detalle
-                {
-                    if (CodAlmacen == "50001")
+                    /* Movemos Detalle */
+                    if (File.Exists(fileTXTd_Cho))
                     {
                         if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_Cho))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_Cho));
                         File.Move(fileTXTd_Cho, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_Cho)); // Try to move
                     }
-                    else
-                    {
-                        if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_Cho))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_Cho));
-                        File.Move(fileTXTd_Cho, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_Cho)); // Try to move
-                    }
-
                 }
 
-                if (File.Exists(fileTXTc_Lur)) //LURIN
+                if (CodAlmacen == "50003")
                 {
-                    if (CodAlmacen == "50001") //cabecera
-                    {
-                        if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_Lur))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_Lur));
-                        File.Move(fileTXTc_Lur, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_Lur)); // Try to move
-                    }
-                    else
+                    /* Movemos Cabecera */
+                    if (File.Exists(fileTXTc_Lur))
                     {
                         if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_Lur))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_Lur));
                         File.Move(fileTXTc_Lur, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_Lur)); // Try to move
                     }
-                }
 
-                if (File.Exists(fileTXTd_Lur))//detalle
-                {
-                    if (CodAlmacen == "50001")
-                    {
-                        if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_Lur))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_Lur));
-                        File.Move(fileTXTd_Lur, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_Lur)); // Try to move
-                    }
-                    else
+                    /* Movemos Detalle */
+                    if (File.Exists(fileTXTd_Lur))
                     {
                         if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_Lur))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_Lur));
                         File.Move(fileTXTd_Lur, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_Lur)); // Try to move
                     }
-
                 }
-
-                if (File.Exists(fileTXTc_A_50001)) //A_50001
-                {
-                    if (CodAlmacen == "50001") //cabecera
-                    {
-                        if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_A_50001))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_A_50001));
-                        File.Move(fileTXTc_A_50001, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_A_50001)); // Try to move
-                    }
-                    else
-                    {
-                        if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_A_50001))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_A_50001));
-                        File.Move(fileTXTc_A_50001, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_A_50001)); // Try to move
-                    }
-                }
-
-                if (File.Exists(fileTXTd_A_50001))//detalle
-                {
-                    if (CodAlmacen == "50001")
-                    {
-                        if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_A_50001))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_A_50001));
-                        File.Move(fileTXTd_A_50001, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_A_50001)); // Try to move
-                    }
-                    else
-                    {
-                        if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_A_50001))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_A_50001));
-                        File.Move(fileTXTd_A_50001, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_A_50001)); // Try to move
-                    }
-
-                }
-
-                if (File.Exists(fileTXTc_A_50003)) //A_50003
-                {
-                    if (CodAlmacen == "50001") //cabecera
-                    {
-                        if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_A_50003))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_A_50003));
-                        File.Move(fileTXTc_A_50003, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc_A_50003)); // Try to move
-                    }
-                    else
-                    {
-                        if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_A_50001))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_A_50001));
-                        File.Move(fileTXTc_A_50003, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc_A_50003)); // Try to move
-                    }
-                }
-
-                if (File.Exists(fileTXTd_A_50003))//detalle
-                {
-                    if (CodAlmacen == "50001")
-                    {
-                        if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_A_50003))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_A_50003));
-                        File.Move(fileTXTd_A_50003, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_A_50003)); // Try to move
-                    }
-                    else
-                    {
-                        if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_A_50003))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_A_50003));
-                        File.Move(fileTXTd_A_50003, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_A_50003)); // Try to move
-                    }
-
-                }
-
             }
-            catch (Exception ex)
+            catch
             {
-                LogUtil.Graba_Log(Interface, "ASN PURCHASE" + " ERROR: " + ex.ToString(), true, "");
+                LogUtil.Graba_Log(Interface, "Error de Envio, Archivo: " + Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_Cho), false, "");
+                LogUtil.Graba_Log(Interface, "Error de Envio, Archivo: " + Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd_Lur), false, "");
+                // omitido
             }
         }
 
         private bool Send_FTP_WMS(string file_origen, string file_destino, string modo)
         {
             bool exito = false;
-
             try
             {
-                // Setup session options
+                // Setup session options produccion
                 SessionOptions sessionOptions = new SessionOptions
                 {
+
                     Protocol = Protocol.Sftp,
-                    HostName = DatosGenerales.UrlFtp, //"172.24.20.183"
-                    UserName = DatosGenerales.UserFtp, //"retailc"
-                    Password = DatosGenerales.PassFtp, //"1wiAwNRa"
-                    PortNumber = 22,
+                    HostName = DatosGenerales.UrlFtp,
+                    UserName = DatosGenerales.UserFtp,
+                    Password = DatosGenerales.PassFtp,
+                    PortNumber = Convert.ToInt32(DatosGenerales.PuertoFtp),
                     GiveUpSecurityAndAcceptAnySshHostKey = true
                 };
 
@@ -429,11 +321,11 @@ namespace CapaInterface
 
                     if (modo == "50001")
                     {
-                        transferResult = session.PutFiles(file_origen, "/data/730/50001/input/" + Path.GetFileName(file_destino), false, transferOptions);
+                        transferResult = session.PutFiles(file_origen, "/Peru/730/50001/input/" + Path.GetFileName(file_destino), false, transferOptions);
                     }
                     else
                     {
-                        transferResult = session.PutFiles(file_origen, "/data/730/50003/input/" + Path.GetFileName(file_destino), false, transferOptions);
+                        transferResult = session.PutFiles(file_origen, "/Peru/730/50003/input/" + Path.GetFileName(file_destino), false, transferOptions);
                     }
 
                     // Throw on any error
@@ -441,11 +333,12 @@ namespace CapaInterface
                     exito = transferResult.IsSuccess;
 
                 }
+
             }
 
             catch (Exception ex)
             {
-                LogUtil.Graba_Log(Interface, "ASN PURCHASE" + " ERROR: " + ex.ToString(), true, "");
+                LogUtil.Graba_Log(Interface, "ASN PURCHASE" + " ERROR: " + ex.ToString(), true, "Archiva_TXT");
             }
 
             return exito;
@@ -471,22 +364,23 @@ namespace CapaInterface
                     int index = 1;
                     DataRow dtRow;
 
-                    dt_tabla.Columns.Add("llave01", typeof(string));
-                    dt_tabla.Columns.Add("llave02", typeof(string));
-                    dt_tabla.Columns.Add("cd", typeof(string));
-                    dt_tabla.Columns.Add("empresa", typeof(string));
-                    dt_tabla.Columns.Add("accion", typeof(string));
-                    dt_tabla.Columns.Add("tipo", typeof(string));
+                    dt_tabla.Columns.Add("llave01", typeof(string));            //00
+                    dt_tabla.Columns.Add("llave02", typeof(string));            //01
+                    dt_tabla.Columns.Add("cd", typeof(string));                 //02
+                    dt_tabla.Columns.Add("empresa", typeof(string));            //03
+                    dt_tabla.Columns.Add("accion", typeof(string));             //04
+                    dt_tabla.Columns.Add("tipo", typeof(string));               //05
+                    dt_tabla.Columns.Add("item", typeof(string));               //06
+                    dt_tabla.Columns.Add("cod_secci", typeof(string));          //07
+                    dt_tabla.Columns.Add("cod_cpack", typeof(string));          //08
+                    dt_tabla.Columns.Add("cantidad", typeof(string));           //09
+                    dt_tabla.Columns.Add("cod_cadenad", typeof(string));        //10
+                    dt_tabla.Columns.Add("cod_almacen", typeof(string));        //11
+                    dt_tabla.Columns.Add("can_ppack", typeof(string));          //12
 
-                    dt_tabla.Columns.Add("item", typeof(string));
-                    dt_tabla.Columns.Add("cod_secci", typeof(string));
-                    dt_tabla.Columns.Add("cod_cpack", typeof(string));
-                    dt_tabla.Columns.Add("cantidad", typeof(string));
-                    dt_tabla.Columns.Add("cod_cadenad", typeof(string));
-                    dt_tabla.Columns.Add("cod_almacen", typeof(string));
+                    string wcodigo_ant = "";
 
-
-                    for (int i = 10; i < tmp.Columns.Count - 1; i++)
+                    for (int i = 10; i < tmp.Columns.Count - 3; i++) // Solo cogemos las columnas donde van las tallas (12 columnas), las que vienen despues NO!
                     {
                         DataColumn dc = tmp.Columns[i];
                         string clname = dc.ColumnName;
@@ -522,29 +416,67 @@ namespace CapaInterface
                                 wcantidad = Convert.ToString(tmp.Rows[y][i]);
                             }
 
-                            dtRow[6] = tmp.Rows[y][6].ToString() + Right(clname, 2);
-                            dtRow[7] = tmp.Rows[y][7].ToString();
-                            dtRow[8] = tmp.Rows[y][8].ToString();
-                            dtRow[9] = wcantidad;
-                            dtRow[10] = tmp.Rows[y][22].ToString(); // Cod_cadena
-                            dtRow[11] = tmp.Rows[y][23].ToString(); // Cod_almacen
 
-                            dt_tabla.Rows.Add(dtRow);
+                            // Si NO tiene Codigo PrePack, se concatena la medida
+                            if (tmp.Rows[y][8].ToString() == "00001")
+                            {
+                                dtRow[6] = tmp.Rows[y][6].ToString() + Right(clname, 2);
+                                wcodigo_ant = "";
+                            }
+                            // Si tiene Codigo PrePack, NO se concatena la medida, queda Item + Calidad
+                            else
+                            {
+                                dtRow[6] = tmp.Rows[y][6].ToString();
+                                wcodigo_ant = tmp.Rows[y][6].ToString() + tmp.Rows[y][8].ToString() + tmp.Rows[y][7].ToString();        // capturamos el codigo del item para resumir
+                            }
+
+
+                            //dtRow[7] = tmp.Rows[y][7].ToString();
+                            dtRow[7] = "";
+                            dtRow[8] = tmp.Rows[y][8].ToString();
+
+                            // Si NO es Codigo PrePack, se concatena la medida
+                            if (tmp.Rows[y][8].ToString() == "00001")
+                            {
+                                dtRow[9] = wcantidad;                                   // cantidad por medida
+                            }
+                            // Si es Codigo PrePack, NO se concatena la medida, queda Item + Calidad
+                            else
+                            {
+                                dtRow[9] = tmp.Rows[y][24].ToString();                  // cantidad por ppack
+                            }
+
+
+                            dtRow[10] = tmp.Rows[y][22].ToString(); // Cod_cadena
+                            dtRow[11] = tmp.Rows[y][23].ToString(); // 
+                            dtRow[12] = tmp.Rows[y][24].ToString(); // Can_ppack
+
+                            if (wcodigo_ant.Length < 14) // No es Cod Prepack
+                            {
+                                dt_tabla.Rows.Add(dtRow);
+                            }
+                            else
+                            {
+                                if (i == 13)
+                                {
+                                    dt_tabla.Rows.Add(dtRow);
+                                }
+                            }
                             index++;
                         }//for
                     }//for
                 }//if
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                LogUtil.Graba_Log(Interface, "Error en Detallar Tallas De Columnas a Filas", false, "");
+                LogUtil.Graba_Log(Interface, "Error en Detallar Tallas De Columnas a Filas (Pivot) ", false, "Dt_pivot");
             }
 
             return dt_tabla;
         }//private
 
 
-        private DataTable Procesa_Data_Det(String Modo)
+        private DataTable Procesa_Data_Det(String modo)
         {
             DataTable dt_tabla = new DataTable();
             DataTable dt_tocompradx = null;
@@ -554,59 +486,69 @@ namespace CapaInterface
             string codcia = "730";
 
 
-            if (Modo == "A")            // Ambos
+            if (modo == "C")            // Es Chorillos
             {
-                wfiltro = " LENGTH(CA.DES_CDS) > 5 ";
-                wCD = "50001";
-
-            }
-            if (Modo == "C")            // Es Chorillos
-            {
-                wfiltro = " CA.DES_CDS = '50001' ";
+                wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50001') ";
                 wCD = "50001";
             }
-            if (Modo == "L")            // Lurin
+            if (modo == "L")            // Lurin
             {
-                wfiltro = " CA.DES_CDS = '50003' ";
+                wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50003') ";
                 wCD = "50003";
             }
 
             try
             {
                 sql_tocompradx = "SELECT C.NRO_PROFORM AS LLAVE01 " +
-                                          ", C.NRO_OCOMPRA AS LLAVE02 " +
-                                          ", " + wCD + " AS CD, '" +
-                                          codcia + "' AS EMPRESA " +
+                                          ", D.NRO_OCOMPRA || D.NRO_PARCIAL || D.COD_CADENAD AS LLAVE02 " +
+                                          ", " + wCD + " AS CD " +
+                                          ", '" + codcia + "' AS EMPRESA " +
                                           ", 'CREATE' AS ACCION " +
-                                          ", 'NAC' AS TIPO " +
+                                          //", 'UPDATE' AS ACCION " +
+                                          ", CASE WHEN C.TIP_ORIGEN = 'I' THEN 'IMP' ELSE 'NAC' END TIPO " +    // I = IMPORTADO, N = NACIONAL
                                           ", D.COD_PRODUCTO || D.COD_CALID AS ITEM " +
-                                          ", C.COD_SECCI " +
-                                          ", D.COD_CPACK " +
-                                          ", D.CAN_MED00 AS CANTIDAD " +
-                                          ", D.CAN_MED00 AS CAN_MED01 " +
-                                          ", D.CAN_MED01 AS CAN_MED02 " +
-                                          ", D.CAN_MED02 AS CAN_MED03 " +
-                                          ", D.CAN_MED03 AS CAN_MED04 " +
-                                          ", D.CAN_MED04 AS CAN_MED05 " +
-                                          ", D.CAN_MED05 AS CAN_MED06 " +
-                                          ", D.CAN_MED06 AS CAN_MED07 " +
-                                          ", D.CAN_MED07 AS CAN_MED08 " +
-                                          ", D.CAN_MED08 AS CAN_MED09 " +
-                                          ", D.CAN_MED09 AS CAN_MED10 " +
-                                          ", D.CAN_MED10 AS CAN_MED11 " +
-                                          ", D.CAN_MED11 AS CAN_MED12" +
-                                          ", D.COD_CADENAD " +
-                                          ", C.COD_ALMACEN " +
+                                          ", CASE WHEN OCD.COD_SECCI IS NULL THEN '' ELSE OCD.COD_SECCI END AS COD_SECCI " +
+                                          ", CASE WHEN D.COD_CPACK IS NULL THEN '' ELSE D.COD_CPACK END AS COD_CPACK " +
+                                          ", CASE WHEN D.CAN_MED00 IS NULL THEN 0 ELSE D.CAN_MED00 END AS CANTIDAD " +
+                                          ", CASE WHEN D.CAN_MED00 IS NULL THEN 0 ELSE D.CAN_MED00 END AS CAN_MED01 " +
+                                          ", CASE WHEN D.CAN_MED01 IS NULL THEN 0 ELSE D.CAN_MED01 END AS CAN_MED02 " +
+                                          ", CASE WHEN D.CAN_MED02 IS NULL THEN 0 ELSE D.CAN_MED02 END AS CAN_MED03 " +
+                                          ", CASE WHEN D.CAN_MED03 IS NULL THEN 0 ELSE D.CAN_MED03 END AS CAN_MED04 " +
+                                          ", CASE WHEN D.CAN_MED04 IS NULL THEN 0 ELSE D.CAN_MED04 END AS CAN_MED05 " +
+                                          ", CASE WHEN D.CAN_MED05 IS NULL THEN 0 ELSE D.CAN_MED05 END AS CAN_MED06 " +
+                                          ", CASE WHEN D.CAN_MED06 IS NULL THEN 0 ELSE D.CAN_MED06 END AS CAN_MED07 " +
+                                          ", CASE WHEN D.CAN_MED07 IS NULL THEN 0 ELSE D.CAN_MED07 END AS CAN_MED08 " +
+                                          ", CASE WHEN D.CAN_MED08 IS NULL THEN 0 ELSE D.CAN_MED08 END AS CAN_MED09 " +
+                                          ", CASE WHEN D.CAN_MED09 IS NULL THEN 0 ELSE D.CAN_MED09 END AS CAN_MED10 " +
+                                          ", CASE WHEN D.CAN_MED10 IS NULL THEN 0 ELSE D.CAN_MED10 END AS CAN_MED11 " +
+                                          ", CASE WHEN D.CAN_MED11 IS NULL THEN 0 ELSE D.CAN_MED11 END AS CAN_MED12 " +
+                                          ", CASE WHEN D.COD_CADENAD IS NULL THEN '' ELSE D.COD_CADENAD END AS COD_CADENAD " +
+                                          ", CASE WHEN TG.DES_CAMPO2 IS NULL THEN '' ELSE SUBSTRING(TG.DES_CAMPO2, 1, 1) END AS COD_ALMACEN " +
+                                          ", CASE WHEN D.CAN_PPACK IS NULL THEN 0 ELSE D.CAN_PPACK END AS CAN_PPACK " +
                                           "FROM TOCOMPRAPLX_ASN D " +
                                           "LEFT JOIN TOCOMPRACX C ON C.NRO_OCOMPRA = D.NRO_OCOMPRA " +
-                                          "INNER JOIN TCADENA CA ON D.COD_CADENAD = CA.COD_CADENA " +
-                                          "WHERE C.COD_SECCI NOT IN ('M','V') " +
-                                          "AND D.FLG_TXWMS != '1' " +
-                                          "AND " + wfiltro + "AND C.FEC_EMISION > CURRENT_DATE - " + ConfigurationManager.AppSettings["dias"].ToString() +
-                                          "AND TRIM(C.NRO_OCOMPRA) != '' ";
+                                          "INNER JOIN TOCOMPRADX OCD ON D.NRO_OCOMPRA  = OCD.NRO_OCOMPRA " +
+                                          "                         AND D.COD_PRODUCTO = OCD.COD_PRODUCTO " +
+                                          "                         AND D.COD_CALID    = OCD.COD_CALID " +
+                                          "                         AND D.COD_CADENAD  = OCD.COD_CADENAD " +
+                                          "                         AND D.COD_CPACK    = OCD.COD_CPACK " +
+                                          "INNER JOIN TCADENA CA ON D.COD_CADENAD      = CA.COD_CADENA " +
+                                          "LEFT JOIN TIMP_EXPEDIENTE EX ON D.NRO_FCOMERCI = EX.NRO_FCOMERCI AND D.NRO_OCOMPRA || D.NRO_PARCIAL = EX.NRO_OCOMPRA " +
+                                          "INNER JOIN TGENERALD TG ON D.COD_CADENAD = TG.DES_CAMPO4 " +
+                                          "AND " + wCD + "|| 'P' = TG.DES_CAMPO5 " +
+                                          "WHERE C.COD_SECCI NOT IN('M','V') " +                        // NO SE CONSIDERA (MATERIALES, VARIOS) DE LA CABECERA
+                                          "AND C.TIP_ESTAD NOT IN('D','C','K') " +                      // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) DE LA CABECERA DE LA ORDEN
+                                          "AND OCD.TIP_ESTAD NOT IN('D','T','K') " +                    // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) DEL DETALLE DE LA ORDEN
+                                          "AND D.TIP_ESTAD NOT IN('D') " +                              // NO CONSIDERAR (DESACTIVOS) DEL ASN
+                                          "AND C.NRO_OCOMPRA != '' " +                                  // SOLO LAS ORDENES QUE TENGAN NUMERO DE ORDEN DE COMPRA
+                                          "AND " + wfiltro +
+                                          "AND LENGTH(D.COD_PRODUCTO) = 7 " +
+                                          "AND D.FLG_TXWMS != '1' " +                                   // SOLO LAS ASN PENDIENTES DE ENVIO
+                                          "AND C.FLG_TXWMS = '1' ";                                    // SOLO LAS ASN REFERENCIADAS A ORDENES QUE SE ENVIARON ANTERIORMENTE
+                                          //"AND CURRENT_DATE - C.FEC_EMISION <= " + Dias;
+                                          //"AND D.NRO_OCOMPRA = '201902645' AND D.NRO_PARCIAL = '06' AND D.COD_CADENAD = 'BA' ";
+                                          //"AND D.NRO_OCOMPRA = '201902702' AND D.NRO_PARCIAL = '03' AND D.COD_CADENAD = 'BA' AND D.COD_PRODUCTO = '6640800' ";
 
-
-                //"AND TC.FEC_EMISION > CURRENT_DATE -10 AND TC.FEC_EMISION <= CURRENT_DATE ORDER BY TD.NRO_PROFORM ";
 
                 using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
                 {
@@ -618,6 +560,7 @@ namespace CapaInterface
                         {
                             dt_tocompradx = new DataTable();
                             da.Fill(dt_tocompradx);
+                            cn.Close();
                         }
                         dt_tocompradx.TableName = "TOCOMPRADX";
                     }
@@ -629,6 +572,7 @@ namespace CapaInterface
                     ds.Tables.Add(dt_tocompradx);
 
                     DataTable dtdet = ds.Tables[0];
+                    /* Metodo que invierte las columnas a Filas */
                     dtdet = Dt_pivot(dtdet);
 
                     dtdet.DefaultView.Sort = "llave02";
@@ -645,8 +589,6 @@ namespace CapaInterface
                         string cad_envio = "";
 
                         valor = fila["cod_cpack"].ToString();
-                        //moneda = ds.Tables[0].Rows[0][13].ToString(); // Asignamos Moneda
-
 
                         if (fila["item"].ToString().Length < 10)
                         {
@@ -670,24 +612,41 @@ namespace CapaInterface
                                 wcorrelativo = wcorrelativo + 1;
                                 string numero_formateado = wcorrelativo.ToString("000");
 
-                                cad_envio = fila["llave01"].ToString() +
-                                                    "|" + fila["llave02"].ToString() +
-                                                    "|" + fila["cd"].ToString() +
-                                                    "|" + fila["empresa"].ToString() +
-                                                    "|" + numero_formateado +
-                                                    "|" + fila["accion"].ToString() +
-                                                    "|" + "|" + "|" + "|" +
-                                                    fila["item"].ToString().Substring(0, 10) + fila["cod_secci"].ToString() +
-                                                    "|" + fila["item"].ToString().Substring(0, 7) +
-                                                    "|" + fila["item"].ToString().Substring(7, 1) +
-                                                    "|" + fila["item"].ToString().Substring(8, 2) +
-                                                    "|" + fila["cod_secci"].ToString() +
-                                                    "|" + "|" + "|" + "|" + "|" + "|" + "|" + "|" + "|" +
-                                                    fila["cantidad"].ToString() +
-                                                    "|" + "|" + "|" + "|" + 
-                                                    fila["cod_cadenad"].ToString() + fila["cod_almacen"].ToString() +
-                                                    "|" + "|" + "|" + "|" +
-                                                    fila["cod_cadenad"].ToString() + fila["cod_almacen"].ToString() + "|";
+                                cad_envio = fila["llave01"].ToString() + "|" +                                                      //0  hdr_group_nbr
+                                                    fila["llave02"].ToString() + "|" +                                              //1  shipment_nbr
+                                                    fila["cd"].ToString() + "|" +                                                   //2  facility_code
+                                                    fila["empresa"].ToString() + "|" +                                              //3  company_code
+                                                    numero_formateado + "|" +                                                       //4  seq_nbr
+                                                    fila["accion"].ToString() + "|" +                                               //5  action_code
+                                                    "|" +                                                                           //6  lpn_nbr
+                                                    "|" +                                                                           //7  lpn_weight
+                                                    "|" +                                                                           //8  lpn_volume
+                                                                                                                                    //fila["item"].ToString() + fila["cod_secci"].ToString() + "|" +                //9  item_alternate_code
+                                                    fila["item"].ToString() + "|" +                                                 //9  item_alternate_code
+                                                    fila["item"].ToString().Substring(0, 7) + "|" +                                 //10 item_part_a
+                                                    fila["item"].ToString().Substring(7, 1) + "|" +                                 //11 item_part_b
+                                                    fila["item"].ToString().Substring(8, 2) + "|" +                                 //12 item_part_c
+                                                                                                                                    //fila["cod_secci"].ToString() + "|" +                                          //13 item_part_d
+                                                    "|" +                                                                           //13 item_part_d
+                                                    "|" +                                                                           //14 item_part_e
+                                                    "|" +                                                                           //15 item_part_f
+                                                    "|" +                                                                           //16 pre_pack_code
+                                                    "|" +                                                                           //17 pre_pack_ratio
+                                                    "|" +                                                                           //18 pre_pack_total_units
+                                                    "|" +                                                                           //19 invn_attr_a
+                                                    "|" +                                                                           //20 invn_attr_b
+                                                    "|" +                                                                           //21 invn_attr_c
+                                                    fila["cantidad"].ToString() + "|" +                                             //22 shipped_qty
+                                                    "|" +                                                                           //23 priority_date
+                                                    fila["llave02"].ToString().Substring(0, 9) + "|" +                               //24 po_nbr                                            //24 po_nbr
+                                                    "|" +                                                                           //25 pallet_nbr
+                                                    fila["cod_cadenad"].ToString() + fila["cod_almacen"].ToString() + "|" +         //26 putaway_type
+                                                    "|" +                                                                           //27 expiry_date
+                                                    "|" +                                                                           //28 batch_nbr
+                                                    "|" +                                                                           //29 recv_xdock_facility_code
+                                                    "|" +                                                                           //30 cust_field_1
+                                                    "|" +                                                                           //31 cust_field_2
+                                                    "|";                                                                            //32 cust_field_3
 
                                 str.Append(cad_envio);
                                 str.Append("\r\n");
@@ -702,24 +661,41 @@ namespace CapaInterface
                                 wcorrelativo = wcorrelativo + 1;
                                 string numero_formateado = wcorrelativo.ToString("000");
 
-                                cad_envio = fila["llave01"].ToString() +
-                                                    "|" + fila["llave02"].ToString() +
-                                                    "|" + fila["cd"].ToString() +
-                                                    "|" + fila["empresa"].ToString() +
-                                                    "|" + numero_formateado +
-                                                    "|" + fila["accion"].ToString() +
-                                                    "|" + "|" + "|" + "|" +
-                                                    fila["item"].ToString().Substring(0, 10) + fila["cod_secci"].ToString() +
-                                                    "|" + fila["item"].ToString().Substring(0, 7) +
-                                                    "|" + fila["item"].ToString().Substring(7, 1) +
-                                                    "|" + fila["item"].ToString().Substring(8, 2) +
-                                                    "|" + fila["cod_secci"].ToString() +
-                                                    "|" + "|" + "|" + "|" + "|" + "|" + "|" + "|" + "|" +
-                                                    fila["cantidad"].ToString() +
-                                                    "|" + "|" + "|" + "|" +
-                                                    fila["cod_cadenad"].ToString() + fila["cod_almacen"].ToString() +
-                                                    "|" + "|" + "|" + "|" +
-                                                    fila["cod_cadenad"].ToString() + fila["cod_almacen"].ToString() + "|";
+                                cad_envio = fila["llave01"].ToString() + "|" +                                                      //0  hdr_group_nbr
+                                                    fila["llave02"].ToString() + "|" +                                              //1  shipment_nbr
+                                                    fila["cd"].ToString() + "|" +                                                   //2  facility_code
+                                                    fila["empresa"].ToString() + "|" +                                              //3  company_code
+                                                    numero_formateado + "|" +                                                       //4  seq_nbr
+                                                    fila["accion"].ToString() + "|" +                                               //5  action_code
+                                                    "|" +                                                                           //6  lpn_nbr
+                                                    "|" +                                                                           //7  lpn_weight
+                                                    "|" +                                                                           //8  lpn_volume
+                                                                                                                                    //fila["item"].ToString() + fila["cod_cpack"].ToString() + fila["cod_secci"].ToString() + "|" + //9  item_alternate_code
+                                                    fila["item"].ToString() + fila["cod_cpack"].ToString() + "|" +                  //9  item_alternate_code
+                                                    fila["item"].ToString().Substring(0, 7) + "|" +                                 //10 item_part_a
+                                                    fila["item"].ToString().Substring(7, 1) + "|" +                                 //11 item_part_b
+                                                    fila["cod_cpack"].ToString() + "|" +                                            //12 item_part_c
+                                                                                                                                    //fila["cod_secci"].ToString() + "|" +                                            //13 item_part_d
+                                                    "|" +                                                                           //13 item_part_d
+                                                    "|" +                                                                           //14 item_part_e
+                                                    "|" +                                                                           //15 item_part_f
+                                                    "|" +                                                                           //16 pre_pack_code
+                                                    "|" +                                                                           //17 pre_pack_ratio
+                                                    "|" +                                                                           //18 pre_pack_total_units
+                                                    "|" +                                                                           //19 invn_attr_a
+                                                    "|" +                                                                           //20 invn_attr_b
+                                                    "|" +                                                                           //21 invn_attr_c
+                                                    fila["cantidad"].ToString() + "|" +                                             //22 shipped_qty
+                                                    "|" +                                                                           //23 priority_date
+                                                    fila["llave02"].ToString().Substring(0, 9) + "|" +                               //24 po_nbr
+                                                    "|" +                                                                           //25 pallet_nbr
+                                                    fila["cod_cadenad"].ToString() + fila["cod_almacen"].ToString() + "|" +         //26 putaway_type
+                                                    "|" +                                                                           //27 expiry_date
+                                                    "|" +                                                                           //28 batch_nbr
+                                                    "|" +                                                                           //29 recv_xdock_facility_code
+                                                    "|" +                                                                           //30 cust_field_1
+                                                    "|" +                                                                           //31 cust_field_2
+                                                    "|";                                                                            //32 cust_field_3
 
                                 str.Append(cad_envio);
                                 str.Append("\r\n");
@@ -728,25 +704,14 @@ namespace CapaInterface
 
                     }// End For
 
-                    /*  Generando Archivos de Texto */
-                    if (Modo == "A")            // Ambos
-                    {
-                        string str2 = str.ToString();
-                        // Grabando registro al Archivo de Texto DETALLE
-                        File.WriteAllText(fileTXTd_A_50001, str2);
-
-                        // Reemplazando Archivo de Texto 
-                        string textoC = File.ReadAllText(fileTXTd_A_50001);
-                        textoC = textoC.Replace("|50001|730|", "|50003|730|");
-                        File.WriteAllText(fileTXTd_A_50003, textoC); // 50003
-                    }
-                    if (Modo == "C")            // Solo Chorillos
+                    /*  Generando Archivos de Texto dentro de la carpeta WORD (localmente) */
+                    if (modo == "C")            // Solo Chorillos
                     {
                         string str2 = str.ToString();
                         // Grabando registro al Archivo de Texto DETALLE
                         File.WriteAllText(fileTXTd_Cho, str2);
                     }
-                    if (Modo == "L")            // Solo Lurin
+                    if (modo == "L")            // Solo Lurin
                     {
                         string str2 = str.ToString();
                         // Grabando registro al Archivo de Texto DETALLE
@@ -759,12 +724,12 @@ namespace CapaInterface
             }
             catch (Exception ex)
             {
-                LogUtil.Graba_Log(Interface, ex.Message, true, "Procesa_Data");
+                LogUtil.Graba_Log(Interface, ex.Message, true, "Procesa_Data_Det");
             }
             return dt_tabla;
         }
 
-        private DataTable Procesa_Data_Cab(String Modo)
+        private DataTable Procesa_Data_Cab(String modo)
         {
             DataTable dt_tabla = new DataTable();
             DataTable dt_tocompracx = null;
@@ -775,21 +740,14 @@ namespace CapaInterface
             StringBuilder str = new StringBuilder();
 
 
-            if (Modo == "A")            // Ambos
+            if (modo == "C")            // Es Chorillos
             {
-                wfiltro = " LENGTH(CA.DES_CDS) > 5 ";
-                wCD = "50001";
-
-            }
-
-            if (Modo == "C")            // Es Chorillos
-            {
-                wfiltro = " CA.DES_CDS = '50001' ";
+                wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50001') ";
                 wCD = "50001";
             }
-            if (Modo == "L")            // Lurin
+            if (modo == "L")            // Lurin
             {
-                wfiltro = " CA.DES_CDS = '50003' ";
+                wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50003') ";
                 wCD = "50003";
             }
 
@@ -802,39 +760,45 @@ namespace CapaInterface
                 //------ CABECERA -------
                 //-----------------------
 
-
                 sql_tocompracx = "SELECT DISTINCT C.NRO_PROFORM AS LLAVE01 " +
-                                ", C.NRO_OCOMPRA " +
+                                ", D.NRO_OCOMPRA || D.NRO_PARCIAL || D.COD_CADENAD AS LLAVE02 " +
                                 ", " + wCD + " AS CD " +
                                 ", " + codcia + " AS EMPRESA " +
                                 ", '' AS TRAILER_NBR " +
                                 ", 'CREATE' AS ACCION " +
+                                //", 'UPDATE' AS ACCION " +
                                 ", '' AS REF_NBR " +
-                                ", 'NAC' AS TIPO " +
+                                ", CASE WHEN C.TIP_ORIGEN = 'N' THEN 'NAC' ELSE 'IMP' END AS TIPO " + // N = NACIONAL, I = IMPORTADO
                                 ", '' AS LOAD_NBR " +
                                 ", '' AS MANIFEST_NBR " +
                                 ", '' AS TRAILER_TYPE " +
-
-                                ", '' AS VENDOR_INFO " +
+                                ", EX.NRO_EXPEDIE AS VENDOR_INFO " +
                                 ", C.COD_PROVE AS ORIGIN_INFO " +
                                 ", '' AS ORIGIN_CODE " +
                                 ", '' AS ORIGIN_SHIPPED_UNITS " +
                                 ", '' AS LOCK_CODE " +
                                 ", TO_CHAR(C.FEC_ENTINI, 'YYYYMMDD') AS FECHA " +
                                 ", '' AS ORIG_SHIPPED_LPNS " +
-                                ", CASE WHEN C.TIP_ORIGEN = 'N' THEN '23' ELSE '24' END AS CUST_FIELD_1 " +
+                                ", CASE WHEN C.TIP_ORIGEN = 'N' THEN '23' ELSE '24' END AS CUST_FIELD_1 " + // 23 = NACIONAL, 24 = IMPORTADO
                                 ", COD_MONEDA " +
+                                ", EX.NRO_FCOMERCI " +
                                 "FROM TOCOMPRAPLX_ASN D " +
                                 "LEFT JOIN TOCOMPRACX C ON C.NRO_OCOMPRA = D.NRO_OCOMPRA " +
                                 "INNER JOIN TCADENA CA ON D.COD_CADENAD = CA.COD_CADENA " +
-                                "WHERE C.COD_SECCI NOT IN('M','V') " +
-                                "AND C.NRO_OCOMPRA != '' " +
-                                "AND " + wfiltro + 
-                                "AND C.FEC_EMISION > CURRENT_DATE - " + ConfigurationManager.AppSettings["dias"].ToString() +
-                                "AND D.FLG_TXWMS != '1' ";
+                                "LEFT JOIN TIMP_EXPEDIENTE EX ON D.NRO_FCOMERCI = EX.NRO_FCOMERCI AND D.NRO_OCOMPRA || D.NRO_PARCIAL = EX.NRO_OCOMPRA " +
+                                "WHERE C.COD_SECCI NOT IN('M','V') " +                    // NO CONSIDERAR (MATERIALES, VARIOS)
+                                "AND C.TIP_ESTAD NOT IN('D','C','K') " +                  // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) CABECERA DE ORDEN 
+                                "AND D.TIP_ESTAD NOT IN('D','T','K') " +                  // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) DETALLE DE ORDEN 
+                                "AND C.NRO_OCOMPRA != '' " +                              // SOLO ORDENES CON NUMERO DE ORDEN DE COMPRA
+                                "AND " + wfiltro +
+                                "AND LENGTH(D.COD_PRODUCTO) = 7 " +
+                                "AND D.FLG_TXWMS != '1' " +                               // SOLO LAS ASN PENDIENTES DE ENVIO
+                                "AND C.FLG_TXWMS = '1' ";                                // SOLO LAS ASN A LAS ORDENES ENVIADAS
+                                //"AND CURRENT_DATE - C.FEC_EMISION <= " + Dias;
+                // b.liq_fecha >= GETDATE() - @dias
 
-                //"AND C.FLG_TXWMS != '1' "
-                //"AND C.FEC_EMISION > CURRENT_DATE - 10 AND C.FEC_EMISION <= CURRENT_DATE ";
+                //"AND D.NRO_OCOMPRA = '201902645' AND D.NRO_PARCIAL = '06' AND D.COD_CADENAD = 'BA' ";
+                //"AND D.NRO_OCOMPRA = '201902702' AND D.NRO_PARCIAL = '03' AND D.COD_CADENAD = 'BA' AND D.COD_PRODUCTO = '6640800' ";
 
                 using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
                 {
@@ -846,6 +810,7 @@ namespace CapaInterface
                         {
                             dt_tocompracx = new DataTable();
                             da.Fill(dt_tocompracx);
+                            cn.Close();
                         }
                         dt_tocompracx.TableName = "TOCOMPRACX";
                     }
@@ -871,24 +836,13 @@ namespace CapaInterface
 
 
                     /*  Generando Archivos de Texto */
-                    if (Modo == "A")            // Ambos
-                    {
-                        string str2 = str.ToString();
-                        // Grabando registro al Archivo de Texto DETALLE
-                        File.WriteAllText(fileTXTc_A_50001, strCab.ToString());
-
-                        // Reemplazando Archivo de Texto 
-                        string textoC = File.ReadAllText(fileTXTc_A_50001);
-                        textoC = textoC.Replace("|50001|730|", "|50003|730|");
-                        File.WriteAllText(fileTXTc_A_50003, textoC); // 50003
-                    }
-                    if (Modo == "C")            // Solo Chorillos
+                    if (modo == "C")            // Solo Chorillos
                     {
                         string str2 = str.ToString();
                         // Grabando registro al Archivo de Texto DETALLE
                         File.WriteAllText(fileTXTc_Cho, strCab.ToString());
                     }
-                    if (Modo == "L")            // Solo Lurin
+                    if (modo == "L")            // Solo Lurin
                     {
                         string str2 = str.ToString();
                         // Grabando registro al Archivo de Texto DETALLE
@@ -900,11 +854,10 @@ namespace CapaInterface
             }
             catch (Exception ex)
             {
-                LogUtil.Graba_Log(Interface, ex.Message, true, "Procesa_Data");
+                LogUtil.Graba_Log(Interface, ex.Message, true, "Procesa_Data_Cab");
             }
             return dt_tabla;
 
         }// Procesa_Data_Cab
-
-    }
-}
+    }// Asn_Purchase
+}// CapaInterface
