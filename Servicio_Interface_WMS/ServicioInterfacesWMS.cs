@@ -85,11 +85,11 @@ namespace CapaServicio
             tmservicio_Purchase.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_Purchase);
 
             // ASN Purchase
-            tmservicio_ASN_Purchase = new Timer(2 * minutos); //5
+            tmservicio_ASN_Purchase = new Timer(5 * minutos); //5
             tmservicio_ASN_Purchase.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_ASN_Purchase);
 
             // Leer archivos del Ftp
-            tmservicio_Leer_FTP = new Timer(3 * minutos);
+            tmservicio_Leer_FTP = new Timer(2 * minutos);
             tmservicio_Leer_FTP.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_Leer_FTP);
 
             // ASN Devoluciones de Tiendas
@@ -101,7 +101,7 @@ namespace CapaServicio
             tmservicio_HDR_DTL.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_HDR_DTL_Carrito);
 
             // order HDR, DTL catalogo
-            tmservicio_HDR_DTL_catalogo = new Timer(5 * minutos);
+            tmservicio_HDR_DTL_catalogo = new Timer(5 * minutos); //5
             tmservicio_HDR_DTL_catalogo.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_HDR_DTL_catalogo);
 
             // stock
@@ -262,8 +262,13 @@ namespace CapaServicio
 
                         wenproceso_HDR_DTL = 1;
                         Pedidos_Carrito ohdr_dtl = new Pedidos_Carrito();
-                        ohdr_dtl.Genera_Interface_Carrito_Maestro(); // maestros de carrito
-                        ohdr_dtl.Genera_Interface_Carrito_Pedido(); // orden de pedidos de carrito
+                        bool exito = ohdr_dtl.Genera_Interface_Carrito_Maestro(); // maestros de carrito
+
+                        if (exito == false)
+                        {
+                            ohdr_dtl.Genera_Interface_Carrito_Pedido(); // orden de pedidos de carrito
+                        }
+                        
                         wenproceso_HDR_DTL = 0;
 
                     }
@@ -320,12 +325,14 @@ namespace CapaServicio
 
                         wenproceso_HDR_DTL_catalogo = 1;
                         Pedidos_Catalogo ohdr_dtl_catalogo = new Pedidos_Catalogo();
-                        ohdr_dtl_catalogo.Genera_Interface_Catalogo_Maestro(); // maestros de catalogo
-                        //System.Threading.Timer sleep = new System.Threading.Timer();
+                        bool exito = ohdr_dtl_catalogo.Genera_Interface_Catalogo_Maestro(); // maestros de catalogo
 
-                       
-                        ohdr_dtl_catalogo.Genera_Interface_Catalogo_Pedido(); //orden de pedido de catalogo
+                        if (exito == false)
+                        {
+                            ohdr_dtl_catalogo.Genera_Interface_Catalogo_Pedido(); //orden de pedido de catalogo
+                        }
                         wenproceso_HDR_DTL_catalogo = 0;
+
                     }
                 }
             }
@@ -335,6 +342,8 @@ namespace CapaServicio
             }
 
         }
+
+
 
         void tmpServicioStock_WMS(object sender, ElapsedEventArgs e)
         {

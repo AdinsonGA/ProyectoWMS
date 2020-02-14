@@ -39,7 +39,8 @@ namespace CapaInterface
         string fileMaestrosTXT = "";
 
 
-        public void Genera_Interface_Catalogo_Maestro()
+        //public void Genera_Interface_Catalogo_Maestro()
+        public bool Genera_Interface_Catalogo_Maestro()
         {
             bool exito = false;
             string wcd = "";
@@ -86,6 +87,8 @@ namespace CapaInterface
             {
                 LogUtil.Graba_Log(winMaestros, winMaestros + ConfigurationManager.AppSettings["M004"].ToString(), false, ""); //MSJ FIN DE PROCESO DE DATA
             }
+
+           return exito;
 
         }
 
@@ -622,6 +625,7 @@ namespace CapaInterface
                         if (NomCli == "")
                         {
                             LogUtil.Graba_Log(winMaestros, "ERROR al enviar maestro : El Código de cliente Nro " + datarow["COD_CLI"].ToString() + " tiene nombre con caracter incorrecto", true, "");
+                            return false;
                         }
                         else
                         {
@@ -682,6 +686,7 @@ namespace CapaInterface
                     else
                     {
                         LogUtil.Graba_Log(winMaestros, "ERROR al enviar Maestro : El Código de cliente Nro " + datarow["COD_CLI"].ToString() + " No tiene nombre asignado", true, "");
+                        return false;
                     }
                 }
             }
