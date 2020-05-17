@@ -85,7 +85,7 @@ namespace CapaServicio
             tmservicio_Purchase.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_Purchase);
 
             // ASN Purchase
-            tmservicio_ASN_Purchase = new Timer(5 * minutos); //5
+            tmservicio_ASN_Purchase = new Timer(7 * minutos); //5
             tmservicio_ASN_Purchase.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_ASN_Purchase);
 
             // Leer archivos del Ftp
@@ -97,11 +97,11 @@ namespace CapaServicio
             tmservicio_ASN_Devol.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_ASN_Devol);
 
             // order HDR, DTL carrito
-            tmservicio_HDR_DTL = new Timer(5 * minutos); //5
+            tmservicio_HDR_DTL = new Timer(6 * minutos); 
             tmservicio_HDR_DTL.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_HDR_DTL_Carrito);
 
             // order HDR, DTL catalogo
-            tmservicio_HDR_DTL_catalogo = new Timer(5 * minutos); //5
+            tmservicio_HDR_DTL_catalogo = new Timer(4 * minutos); //4
             tmservicio_HDR_DTL_catalogo.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_HDR_DTL_catalogo);
 
             // stock
@@ -109,11 +109,11 @@ namespace CapaServicio
             tmservicio_stock_WMS.Elapsed += new ElapsedEventHandler(tmpServicioStock_WMS);
 
             //NC carrito
-            tmservicio_NC_carrito = new Timer(10 * minutos);
+            tmservicio_NC_carrito = new Timer(11 * minutos);
             tmservicio_NC_carrito.Elapsed += new ElapsedEventHandler(tmpServicio_NC_carrito);
 
             //NC catalogo
-            tmservicio_NC_catalogo = new Timer(10 * minutos);
+            tmservicio_NC_catalogo = new Timer(12 * minutos);
             tmservicio_NC_catalogo.Elapsed += new ElapsedEventHandler(tmpServicio_NC_catalogo);
 
         }

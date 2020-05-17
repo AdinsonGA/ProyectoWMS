@@ -581,7 +581,7 @@ namespace CapaInterface
 
                         if (NomCli == "")
                         {
-                            LogUtil.Graba_Log(winMaestros, "ERROR al enviar maestro : El Código de cliente Nro " + datarow["COD_CLI"].ToString() + " tiene nombre con caracter incorrecto", true, "");
+                            LogUtil.Graba_Log(winMaestros, "ERROR al enviar maestro : El Código Intranet " + datarow["COD_INT"].ToString() + " tiene nombre con caracter incorrecto", true, "");
                             return false;
                         }
                         else
@@ -644,7 +644,7 @@ namespace CapaInterface
                     }
                     else
                     {
-                        LogUtil.Graba_Log(winMaestros, "ERROR al enviar maestro : El Código de cliente Nro " + datarow["COD_CLI"].ToString() + " No tiene nombre asignado", true, "");
+                        LogUtil.Graba_Log(winMaestros, "ERROR al enviar maestro : El Código de Intranet " + datarow["COD_INT"].ToString() + " No tiene nombre asignado", true, "");
                         return false;
                     }
                 }
