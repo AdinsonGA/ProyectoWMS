@@ -85,11 +85,11 @@ namespace CapaInterface
 
                 if (exito)
                 {
-                    LogUtil.Graba_Log(Interface, "PROCESO PURCHASE OK", false, ""); 
+                    LogUtil.Graba_Log(Interface, "PROCESO PURCHASE OK", false, "");
                 }
                 else
                 {
-                    LogUtil.Graba_Log(Interface, "NO EXISTE DATA PARA PROCESAR", false, ""); 
+                    LogUtil.Graba_Log(Interface, "NO EXISTE DATA PARA PROCESAR", false, "");
                 }
 
             }
@@ -125,11 +125,11 @@ namespace CapaInterface
                         string wsql = "";
 
                         wnro_ocompra = ds_cab.Tables[0].Rows[ix][1].ToString();
-
+                    
                         wsql = "UPDATE TOCOMPRACX SET FLG_TXWMS = '1' WHERE NRO_OCOMPRA = '" + wnro_ocompra + "'";
                         using (NpgsqlCommand cmd = new NpgsqlCommand(wsql, cn))
                         {
-                            cmd.CommandTimeout = 0;
+                            cmd.CommandTimeout = 5 * 60; // 5 minutos
                             cmd.CommandType = CommandType.Text;
                             cmd.ExecuteNonQuery();
                         }
@@ -140,18 +140,55 @@ namespace CapaInterface
                     LogUtil.Graba_Log(Interface, "ERROR: " + ex.ToString(), true, "Actualiza_Flag_Purchase");
                     return false;
                 }
+                finally
+                {
+                    cn.Close();
+
+                }
             }
+            
 
             exito = true;
             return exito;
         }
+
+        /**/
+        //using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
+        //{
+        //    try
+        //    {
+        //        cn.Open();
+
+        //        for (int ix = 0; ix < ds_cab.Tables[0].Rows.Count; ix++)
+        //        {
+        //            string wnro_ocompra = "";
+        //            //string wsql = "";
+
+        //            wnro_ocompra = ds_cab.Tables[0].Rows[ix][1].ToString();
+        //            string query = "UPDATE TOCOMPRACX SET FLG_TXWMS = '1' WHERE NRO_OCOMPRA = '" + wnro_ocompra + "'";
+        //            var cmd = new NpgsqlCommand(query, cn);
+        //            cmd.ExecuteNonQuery();
+        //        }
+
+        //    }
+        //    catch (Exception)
+        //    {
+        //        throw;
+        //    }
+        //}
+        /**/
+
+
+
+
+
 
         /************** Envia_FTP ************
         * Metodo que envia el archivo de texto al FTP
         **************************************/
         private bool Envia_FTP(string wcd)
         {
-            bool exito1, exito2, exito5, exito6  = false;
+            bool exito1, exito2, exito5, exito6 = false;
             int cont = 0;
 
             if (wcd == "50001")
@@ -241,7 +278,7 @@ namespace CapaInterface
                     }
 
                     if (File.Exists(fileTXTd_Cho))//detalle
-                    { 
+                    {
                         if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_Cho))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_Cho));
                         File.Move(fileTXTd_Cho, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd_Cho)); // Try to move
                     }
@@ -339,7 +376,7 @@ namespace CapaInterface
         {
             DataTable tmp = dt;
             DataTable dt_tabla = new DataTable();
-            
+
             try
             {
                 if (tmp.Rows.Count > 0 && tmp.Columns.Count > 1) // Barre todos los registros
@@ -403,7 +440,7 @@ namespace CapaInterface
                                 wcantidad = Convert.ToString(tmp.Rows[y][i]);
                             }
 
-                                                        
+
                             // Si NO es Codigo PrePack, se concatena la medida
                             if (tmp.Rows[y][8].ToString() == "00001")
                             {
@@ -417,7 +454,7 @@ namespace CapaInterface
                                 wcodigo_ant = tmp.Rows[y][6].ToString() + tmp.Rows[y][8].ToString() + tmp.Rows[y][7].ToString();        // capturamos el codigo del item para resumir
                             }
 
-                            
+
                             //dtRow[7] = tmp.Rows[y][7].ToString();                       // cod_secci
                             dtRow[7] = "";                                              // cod_secci
                             dtRow[8] = tmp.Rows[y][8].ToString();                       // cod_cpack
@@ -542,8 +579,8 @@ namespace CapaInterface
                                           "AND TC.COD_EMPRESA = '02' " +                                // SOLO PERU
                                           "AND TC.FEC_EMISION >= '20170101' " +                         // A PARTIR DE ENE - 2017
                                           "AND TRIM(TC.NRO_OCOMPRA) != '' " +                           // SOLO ORDENES QUE TENGAN ORDEN DE COMPRA
-                                          "AND CURRENT_DATE - TC.FEC_EMISION <= " + Dias + 
-                                          "GROUP BY TD.NRO_PROFORM, TD.NRO_OCOMPRA, TD.COD_PRODUCTO, TD.COD_CALID, TD.COD_CPACK " ;
+                                          "AND CURRENT_DATE - TC.FEC_EMISION <= " + Dias +
+                                          "GROUP BY TD.NRO_PROFORM, TD.NRO_OCOMPRA, TD.COD_PRODUCTO, TD.COD_CALID, TD.COD_CPACK ";
 
 
                 using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
@@ -551,16 +588,16 @@ namespace CapaInterface
                     /*selecccionando el archivo TOCOMPRADX */
                     using (NpgsqlCommand cmd = new NpgsqlCommand(sql_tocompradx, cn))
                     {
-                        cmd.CommandTimeout = 0;
+                        cmd.CommandTimeout = 5 * 60; // 5 minutos
                         using (NpgsqlDataAdapter da = new NpgsqlDataAdapter(cmd))
                         {
                             dt_tocompradx = new DataTable();
                             da.Fill(dt_tocompradx);
-                            cn.Close();
                         }
                         dt_tocompradx.TableName = "TOCOMPRADX";
                     }
 
+                    cn.Close();
                 }
 
                 if ((dt_tocompradx != null && dt_tocompradx.Rows.Count > 0))
@@ -570,7 +607,7 @@ namespace CapaInterface
                     DataTable dtdet = ds_det.Tables[0];
 
                     /* Metodo que invierte las columnas a Filas */
-                    dtdet = Dt_pivot(dtdet); 
+                    dtdet = Dt_pivot(dtdet);
 
                     dtdet.DefaultView.Sort = "llave02";
                     dtdet = dtdet.DefaultView.ToTable();
@@ -622,12 +659,12 @@ namespace CapaInterface
                                             fila["empresa"].ToString() + "|" +                                              //3  company_code
                                             numero_formateado + "|" +                                                       //4  seq_nbr
                                             fila["tipo"].ToString() + "|" +                                                 //5  action_code
-                                            //fila["item"].ToString() + fila["cod_secci"].ToString() + "|" +                //6  item_alternate_code
+                                                                                                                            //fila["item"].ToString() + fila["cod_secci"].ToString() + "|" +                //6  item_alternate_code
                                             fila["item"].ToString() + "|" +                                                 //6  item_alternate_code
                                             fila["item"].ToString().Substring(0, 7) + "|" +                                 //7  item_part_a
                                             fila["item"].ToString().Substring(7, 1) + "|" +                                 //8  item_part_b
                                             fila["item"].ToString().Substring(8, 2) + "|" +                                 //9  item_part_c
-                                            //fila["cod_secci"].ToString() + "|" +                                          //10 item_part_d
+                                                                                                                            //fila["cod_secci"].ToString() + "|" +                                          //10 item_part_d
                                             "|" +                                                                           //10 item_part_d
                                             "|" +                                                                           //11 item_part_e
                                             "|" +                                                                           //12 item_part_f
@@ -650,7 +687,7 @@ namespace CapaInterface
                                             "|" +                                                                           //29 
                                             "|" +                                                                           //30 
                                             "|" +                                                                           //31 
-                                            "|" ;                                                                           //32 
+                                            "|";                                                                           //32 
 
 
                                 str.Append(cad_envio);
@@ -672,12 +709,12 @@ namespace CapaInterface
                                             fila["empresa"].ToString() + "|" +                                                                      //3  company_code
                                             numero_formateado + "|" +                                                                               //4  seq_nbr
                                             fila["tipo"].ToString() + "|" +                                                                         //5  action_code
-                                            //fila["item"].ToString() + fila["cod_cpack"].ToString() + fila["cod_secci"].ToString() + "|" +         //6  item_alternate_code
+                                                                                                                                                    //fila["item"].ToString() + fila["cod_cpack"].ToString() + fila["cod_secci"].ToString() + "|" +         //6  item_alternate_code
                                             fila["item"].ToString() + fila["cod_cpack"].ToString() + "|" +                                          //6  item_alternate_code
                                             fila["item"].ToString().Substring(0, 7) + "|" +                                                         //7  item_part_a
                                             fila["item"].ToString().Substring(7, 1) + "|" +                                                         //8  item_part_b
                                             fila["cod_cpack"].ToString() + "|" +                                                                    //9  item_part_c
-                                            //fila["cod_secci"].ToString() + "|" +                                                                  //10 item_part_d
+                                                                                                                                                    //fila["cod_secci"].ToString() + "|" +                                                                  //10 item_part_d
                                             "|" +                                                                                                   //10 item_part_d
                                             "|" +                                                                                                   //11 item_part_e
                                             "|" +                                                                                                   //12 item_part_f
@@ -729,8 +766,8 @@ namespace CapaInterface
             }
             catch (Exception ex)
             {
-                LogUtil.Graba_Log(Interface, "Error en Detallar Tallas De Columnas a Filas : " + ex.Message.ToString() , true, "Procesa_Data_Det");
-             }
+                LogUtil.Graba_Log(Interface, "Error en Detallar Tallas De Columnas a Filas : " + ex.Message.ToString(), true, "Procesa_Data_Det");
+            }
             return dt_tabla;
         }
 
@@ -800,15 +837,16 @@ namespace CapaInterface
                     /*selecccionando el archivo TOCOMPRACX */
                     using (NpgsqlCommand cmd = new NpgsqlCommand(sql_tocompracx, cn))
                     {
-                        cmd.CommandTimeout = 0;
+                        cmd.CommandTimeout = 5 * 60; // 5 minutos
                         using (NpgsqlDataAdapter da = new NpgsqlDataAdapter(cmd))
                         {
                             dt_tocompracx = new DataTable();
                             da.Fill(dt_tocompracx);
-                            cn.Close();
+
                         }
                         dt_tocompracx.TableName = "TOCOMPRACX";
                     }
+                    cn.Close();
                 }
 
                 if ((dt_tocompracx != null && dt_tocompracx.Rows.Count > 0))

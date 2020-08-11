@@ -615,17 +615,17 @@ namespace CapaInterface
                 foreach (DataRow datarow in dt_maestros.Rows)
                 {
 
-                    if (datarow["NOM_CLI"].ToString() != "") //Valida si existe nombre (dato obligatorio para WMS)
-                    {
+                    //if (datarow["NOM_CLI"].ToString() != "") 
+                    //{
                         str.Append(datarow["COD_CLI"].ToString() + delimited);
                         str.Append(datarow["COD_INT"].ToString() + delimited);
 
-                        NomCli = ValidaCaracteres.Numeros_Letras(datarow["NOM_CLI"].ToString());
+                        NomCli = ValidaCaracteres.Numeros_Letras(datarow["NOM_CLI"].ToString()); //Valida si existe nombre (dato obligatorio para WMS)
 
-                        if (NomCli == "")
+                    if (NomCli == "")
                         {
-                            LogUtil.Graba_Log(winMaestros, "ERROR al enviar maestro : El Código de Intranet " + datarow["COD_INT"].ToString() + " tiene nombre con caracter incorrecto", true, "");
-                            return false;
+                            LogUtil.Graba_Log(winMaestros, "ERROR al enviar maestro : El Código de Intranet " + datarow["COD_INT"].ToString() + " tiene nombre de cliente con caracter incorrecto", true, "");
+                            continue;
                         }
                         else
                         {
@@ -661,7 +661,7 @@ namespace CapaInterface
                         str.Append(datarow["PAI_CLI"].ToString() + delimited);
                         str.Append(datarow["VAC5"].ToString() + delimited);
 
-                        if (datarow["EMA_CLI"].ToString() != null)
+                        if (datarow["EMA_CLI"].ToString() != "")
                         {
                             EmailCli = ValidaCaracteres.Email(datarow["EMA_CLI"].ToString());
                             str.Append(EmailCli + delimited);
@@ -683,12 +683,12 @@ namespace CapaInterface
                         str.Append(datarow["VAC13"].ToString() + delimited);
                         str.Append("\r\n");
                     }
-                    else
-                    {
-                        LogUtil.Graba_Log(winMaestros, "ERROR al enviar Maestro : El Código de Intranet " + datarow["COD_INT"].ToString() + " No tiene nombre asignado", true, "");
-                        return false;
-                    }
-                }
+                    //else
+                    //{
+                    //    LogUtil.Graba_Log(winMaestros, "ERROR al enviar Maestro : El Código de Intranet " + datarow["COD_INT"].ToString() + " No tiene nombre asignado", true, "");
+                    //    continue;
+                    //}
+                //}
             }
 
             catch (Exception ex)

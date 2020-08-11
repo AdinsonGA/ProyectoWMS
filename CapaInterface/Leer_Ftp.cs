@@ -86,14 +86,15 @@ namespace CapaInterface
                     }//for
 
 
-                    //if (exito)
-                    //{
-                    //    //LogUtil.Graba_Log(Interface, "LECTURA DE ARCHIVOS DE TEXTO OK", false, "");
-                    //}
-                    //else
-                    //{
-                    //    //LogUtil.Graba_Log(Interface, "NO EXISTE INFORMACION PARA LEER", false, "");
-                    //}
+
+                    if (exito)
+                    {
+                        //LogUtil.Graba_Log(Interface, "LECTURA DE ARCHIVOS DE TEXTO OK", false, "");
+                    }
+                    else
+                    {
+                        //LogUtil.Graba_Log(Interface, "NO EXISTE INFORMACION PARA LEER", false, "");
+                    }
 
                 }
             }
@@ -234,6 +235,8 @@ namespace CapaInterface
                 dt_OBS.Columns.Add("order_hdr_cust_number_3", typeof(int));
                 dt_OBS.Columns.Add("order_hdr_cust_number_4", typeof(int));
 
+                
+                dt_OBS.Columns.Add("invn_attr_f", typeof(string));
                 dt_OBS.Columns.Add("order_type", typeof(string));
                 dt_OBS.Columns.Add("ob_lpn_length", typeof(decimal));
                 dt_OBS.Columns.Add("ob_lpn_width", typeof(decimal));
@@ -506,6 +509,7 @@ namespace CapaInterface
                                         string worder_hdr_cust_short_text_1 = campos[112].ToString();
                                         string worder_dtl_cust_short_text_1 = campos[142].ToString();// Numero de Orden de Compra
 
+                                        string winvn_attr_f = campos[159].ToString();
                                         string worder_type = campos[161].ToString();
                                         string wob_lpn_length = campos[165].ToString();
                                         string wob_lpn_width = campos[166].ToString();
@@ -530,7 +534,7 @@ namespace CapaInterface
                                             worder_seq_nbr, wob_lpn_nbr, witem_alternate_code, witem_part_a, witem_part_b, witem_part_c, witem_part_d,
                                             wpre_pack_code, wpre_pack_ratio, wpre_pack_ratio_seq, whazmat, wshipped_uom, wshipped_qty, wob_lpn_weight,
                                             wob_lpn_volume, wob_lpn_shipping_charge, wob_lpn_type, worder_hdr_cust_number_1, worder_hdr_cust_number_2,
-                                            worder_hdr_cust_number_3, worder_hdr_cust_number_4, worder_type, wob_lpn_length, wob_lpn_width, wob_lpn_height,
+                                            worder_hdr_cust_number_3, worder_hdr_cust_number_4, winvn_attr_f, worder_type, wob_lpn_length, wob_lpn_width, wob_lpn_height,
                                             worder_hdr_cust_short_text_1, worder_dtl_cust_short_text_1, werp_fulfillment_line_ref, wsales_order_line_ref, wsales_order_schedule_ref, wtms_order_hdr_ref, wtms_order_dtl_ref);
                                     }
                                 }
@@ -983,7 +987,7 @@ namespace CapaInterface
                         }//for
                     }//if
 
-
+                    
 
                     //--------- Procesamos tabla OBS ----------//
                     if (Arr_OBS != null || Arr_OBS.Length == 0)

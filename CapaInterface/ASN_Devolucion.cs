@@ -32,7 +32,9 @@ namespace CapaInterface
         string waction = "CREATE";
         string winterface = "ASN_DEVOL";
         //int wdiasatras = 7;
-        string wcd = "50001";
+        string wcd;
+        //string wcd2 = "50003";
+        string alm_lurin = "BA2";
 
         //************** Datatables globales para guardar las devoluciones obtenidas
         DataTable dt_cab = null;
@@ -68,18 +70,34 @@ namespace CapaInterface
                     //    else
                     //        wcd = "50003";
 
-                    if (Genera_FileTXT())
+                    for (int ii = 1; ii <= 1; ii++)
                     {
-                        if (Envia_FTP())
+                        if (ii == 1)
                         {
-                            if (Actualiza_Flag_Data())
-                            {
-                                exito = true;
-                            }
+                            wcd = "50003";
+                        }
+                        //else
+                        //{
+                        //    wcd = "50003";
+                        //}
 
-                            Archiva_TXT();
+                        if (Genera_FileTXT(wcd))
+                        {
+                            if (Envia_FTP(wcd))
+                            {
+                                Archiva_TXT(wcd);
+
+                            }
                         }
                     }
+
+                    //if (Actualiza_Flag_Data())
+                    //{
+                    //    exito = true;
+                    //}
+
+                    
+
                     //}
                 }
 
@@ -171,7 +189,7 @@ namespace CapaInterface
 
                             if (cn != null)
                                 if (cn.State == ConnectionState.Open) cn.Close();
-                            
+
                             //System.Data.OleDb.OleDbCommand com_upd = new System.Data.OleDb.OleDbCommand(sql_upd, dbConn);
                             //com_upd.ExecuteNonQuery();
                             //int count = caden.Count(f => f == ',');
@@ -195,15 +213,15 @@ namespace CapaInterface
         /************** Envia_FTP
         * Metodo que envia el archivo de texto al FTP
         ***************/
-        private bool Envia_FTP()
+        private bool Envia_FTP(string wcd)
         {
             bool exito1 = false;
             bool exito2 = false;
 
-            //return true; // ojo x mientras
+            //return true; // ojo x mientras COMENTADO
 
-            exito1 = FTPUtil.Send_FTP_WMS(fileTXTc, fileTXTc, wcd,winterface);
-            exito2 = FTPUtil.Send_FTP_WMS(fileTXTd, fileTXTd, wcd,winterface);
+            exito1 = FTPUtil.Send_FTP_WMS(fileTXTc, fileTXTc, wcd, winterface);
+            exito2 = FTPUtil.Send_FTP_WMS(fileTXTd, fileTXTd, wcd, winterface);
 
             if (exito1 && exito2)
             { LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M006"].ToString(), false, ""); } // MSJ SE ENVIO AL FTP OK
@@ -217,14 +235,22 @@ namespace CapaInterface
         /************** Genera_FileTXT
         * Metodo que genera la interface como archivo de texto para el WMS
         ***************/
-        private bool Genera_FileTXT()
+        private bool Genera_FileTXT(string wcd)
         {
             bool exito = false;
 
             string fechor = DateTime.Now.ToString("yyyyMMddHHmmss") + ".TXT";
 
-            fileTXTc = Path.Combine(Crear_Carpetas.WORK, "ISH_DEV_TDA_" + fechor);
-            fileTXTd = Path.Combine(Crear_Carpetas.WORK, "ISL_DEV_TDA_" + fechor);
+            if (wcd == "50001")
+            {
+                fileTXTc = Path.Combine(Crear_Carpetas.WORK, "ISH_DEV_TDA_CHO_" + fechor);
+                fileTXTd = Path.Combine(Crear_Carpetas.WORK, "ISL_DEV_TDA_CHO_" + fechor);
+            }
+            else
+            {
+                fileTXTc = Path.Combine(Crear_Carpetas.WORK, "ISH_DEV_TDA_LUR_" + fechor);
+                fileTXTd = Path.Combine(Crear_Carpetas.WORK, "ISL_DEV_TDA_LUR_" + fechor);
+            }
 
 
             // Eliminar archivos ISH_DEV_TDA, ISL_DEV_TDA.TXT
@@ -268,7 +294,16 @@ namespace CapaInterface
                 str.Append(datarow["desc_almac"].ToString() + delimited);        // Tienda
                 str.Append("" + delimited);
                 str.Append("" + delimited);
-                str.Append(datarow["lockcode"].ToString() + delimited);         // Lock Code (cquinto nuevo)
+
+                if (wcd == "50001")
+                {
+                    str.Append(datarow["lockcode"].ToString() + delimited);         // Lock Code (cquinto nuevo)
+                }
+                else
+                {
+                    str.Append(alm_lurin + delimited);
+                }
+
                 str.Append(Convert.ToDateTime(datarow["desc_fecha"]).ToString("yyyyMMdd") + delimited);  // Fecha emision
                 str.Append("" + delimited);
                 str.Append("" + delimited);
@@ -332,6 +367,7 @@ namespace CapaInterface
                 str.Append(datarow["desc_ndesp"].ToString() + delimited);        // Numero de guia
                 str.Append(datarow["desc_ndesp"].ToString() + delimited);        // Numero de guia
                 str.Append(wcd + delimited);                                     // Facility code
+
                 str.Append(wcodcia + delimited);                                 // Cod Cia
                 str.Append(correlativo.ToString() + delimited);                  // Numero correlativo
                 str.Append(waction + delimited);                                 // Action Code
@@ -350,7 +386,15 @@ namespace CapaInterface
                 str.Append("" + delimited);
                 str.Append("" + delimited);
                 //str.Append(cadalm + delimited);        // cadena + almacen (*)
-                str.Append(datarow["TIPO_CADENA"] + delimited); // nuevo campo PUTAWAY_TYPE 
+
+                if (wcd == "50001")
+                {
+                    str.Append(datarow["TIPO_CADENA"] + delimited); // nuevo campo PUTAWAY_TYPE 
+                }
+                else
+                {
+                    str.Append(alm_lurin + delimited); // nuevo campo PUTAWAY_TYPE 
+                }
                 str.Append("" + delimited);
                 str.Append("" + delimited);
                 str.Append("" + delimited);
@@ -376,7 +420,7 @@ namespace CapaInterface
             }
             else
             {
-                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M013"] + " : " + Path.GetFileName(fileTXTc) + "  " +  Path.GetFileName(fileTXTd), false, ""); // MSJ ERROR AL GENERAR ARCHIVOS
+                LogUtil.Graba_Log(winterface, winterface + ConfigurationManager.AppSettings["M013"] + " : " + Path.GetFileName(fileTXTc) + "  " + Path.GetFileName(fileTXTd), false, ""); // MSJ ERROR AL GENERAR ARCHIVOS
             }
 
             return exito;
@@ -398,7 +442,7 @@ namespace CapaInterface
             string msgerror = "";
 
             // CABECERA
-            string sql = "[USP_WMS_Obt_Devoluciones_Tda]";
+            string sql = "[USP_WMS_Obt_Devoluciones_Tda_2]";
             //string sql = "select * from BDPOS.dbo.FVDESPC where DESC_FECHA>=GETDATE()-7";
             dt_cab = Conexion.Obt_SQL(sql, ref msgerror, "C", Dias);
 
@@ -435,7 +479,7 @@ namespace CapaInterface
             return exito;
         }
 
-        private void Archiva_TXT()
+        private void Archiva_TXT(string wcd)
         {
             try
             {
@@ -444,30 +488,30 @@ namespace CapaInterface
 
                 if (File.Exists(fileTXTc))
                 {
-                    //if (wcd == "50001") //cabecera
-                    //{
-                    if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc));
-                    File.Move(fileTXTc, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc)); // Try to move
-                    //}
-                    //else
-                    //{
-                    //    if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc));
-                    //    File.Move(fileTXTc, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc)); // Try to move
-                    //}
+                    if (wcd == "50001") //cabecera
+                    {
+                        if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc));
+                        File.Move(fileTXTc, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTc)); // Try to move
+                    }
+                    else
+                    {
+                        if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc));
+                        File.Move(fileTXTc, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTc)); // Try to move
+                    }
                 }
 
                 if (File.Exists(fileTXTd))//detalle
                 {
-                    //if (CodAlmacen == "50001")
-                    //{
-                    if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd));
-                    File.Move(fileTXTd, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd)); // Try to move
-                    //}
-                    //else
-                    //{
-                    //    if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd));
-                    //    File.Move(fileTXTd, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd)); // Try to move
-                    //}
+                    if (wcd == "50001")
+                    {
+                        if (File.Exists(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd))) File.Delete(Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd));
+                        File.Move(fileTXTd, Crear_Carpetas.C50001_input + Path.GetFileName(fileTXTd)); // Try to move
+                    }
+                    else
+                    {
+                        if (File.Exists(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd))) File.Delete(Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd));
+                        File.Move(fileTXTd, Crear_Carpetas.C50003_input + Path.GetFileName(fileTXTd)); // Try to move
+                    }
                 }
 
             }

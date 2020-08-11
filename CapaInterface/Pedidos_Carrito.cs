@@ -66,9 +66,9 @@ namespace CapaInterface
                             {
                                 exito = true;
                                 Archiva_MaestrosTXT();
-                            }
-                        }
                     }
+                }
+            }
                 }
                 if (exito)
                 {
@@ -547,6 +547,7 @@ namespace CapaInterface
             bool exito = false;
             string fechor = DateTime.Now.ToString("yyyyMMddHHmmss") + ".TXT";
             string NomCli, DirCli, CiuCli, EmailCli = "";
+            string _val = "";
 
             fileMaestrosTXT = Path.Combine(Crear_Carpetas.WORK_MAE_AQ_EC, "STR_CAR" + fechor);
 
@@ -572,8 +573,8 @@ namespace CapaInterface
                 foreach (DataRow datarow in dt_maestros.Rows)
                 {
 
-                    if (datarow["NOM_CLI"].ToString() != "") //Valida si existe nombre (dato obligatorio para WMS)
-                    {
+                    //if (datarow["NOM_CLI"].ToString() != "") //Valida si existe nombre (dato obligatorio para WMS)
+                    //{
                         str.Append(datarow["COD_CLI"].ToString() + delimited);
                         str.Append(datarow["COD_INT"].ToString() + delimited);
 
@@ -582,7 +583,7 @@ namespace CapaInterface
                         if (NomCli == "")
                         {
                             LogUtil.Graba_Log(winMaestros, "ERROR al enviar maestro : El Código Intranet " + datarow["COD_INT"].ToString() + " tiene nombre con caracter incorrecto", true, "");
-                            return false;
+                            continue;
                         }
                         else
                         {
@@ -619,7 +620,7 @@ namespace CapaInterface
                         str.Append(datarow["PAI_CLI"].ToString() + delimited);
                         str.Append(datarow["VAC5"].ToString() + delimited);
 
-                        if (datarow["EMA_CLI"].ToString() != null)
+                        if (datarow["EMA_CLI"].ToString() != "")
                         {
                             EmailCli = ValidaCaracteres.Email(datarow["EMA_CLI"].ToString());
                             str.Append(EmailCli + delimited);
@@ -642,12 +643,13 @@ namespace CapaInterface
                         str.Append("\r\n");
 
                     }
-                    else
-                    {
-                        LogUtil.Graba_Log(winMaestros, "ERROR al enviar maestro : El Código de Intranet " + datarow["COD_INT"].ToString() + " No tiene nombre asignado", true, "");
-                        return false;
-                    }
-                }
+                //    else
+                //    {
+                //        LogUtil.Graba_Log(winMaestros, "ERROR al enviar maestro : El Código de Intranet " + datarow["COD_INT"].ToString() + " No tiene nombre asignado", true, "");
+                //        //return false;
+                //        continue;
+                //    }
+                //}
             }
 
             catch (Exception ex)

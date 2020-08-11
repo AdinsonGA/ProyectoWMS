@@ -102,7 +102,7 @@ namespace CapaInterface
         {
             bool exito = false;
 
-             ////-----------------------
+            ////-----------------------
             ////----- DETALLE ---------
             ////-----------------------
 
@@ -220,9 +220,10 @@ namespace CapaInterface
 
                         using (NpgsqlCommand cmd = new NpgsqlCommand(wsql, cn))
                         {
-                            cmd.CommandTimeout = 0;
+                            cmd.CommandTimeout = 5 * 60; // 5 minutos
                             cmd.CommandType = CommandType.Text;
                             cmd.ExecuteNonQuery();
+
                         }
                     }
                 }
@@ -231,6 +232,10 @@ namespace CapaInterface
                     if (cn != null)
                         if (cn.State == ConnectionState.Open) cn.Close();
                     LogUtil.Graba_Log(Interface, "ERROR: " + ex.ToString(), true, "Actualiza_Flag_Asn_Purchase");
+                }
+                finally
+                {
+                    cn.Close();
                 }
             }
 
@@ -545,9 +550,9 @@ namespace CapaInterface
                                           "AND LENGTH(D.COD_PRODUCTO) = 7 " +
                                           "AND D.FLG_TXWMS != '1' " +                                   // SOLO LAS ASN PENDIENTES DE ENVIO
                                           "AND C.FLG_TXWMS = '1' ";                                    // SOLO LAS ASN REFERENCIADAS A ORDENES QUE SE ENVIARON ANTERIORMENTE
-                                          //"AND CURRENT_DATE - C.FEC_EMISION <= " + Dias;
-                                          //"AND D.NRO_OCOMPRA = '201902645' AND D.NRO_PARCIAL = '06' AND D.COD_CADENAD = 'BA' ";
-                                          //"AND D.NRO_OCOMPRA = '201902702' AND D.NRO_PARCIAL = '03' AND D.COD_CADENAD = 'BA' AND D.COD_PRODUCTO = '6640800' ";
+                                                                                                       //"AND CURRENT_DATE - C.FEC_EMISION <= " + Dias;
+                                                                                                       //"AND D.NRO_OCOMPRA = '201902645' AND D.NRO_PARCIAL = '06' AND D.COD_CADENAD = 'BA' ";
+                                                                                                       //"AND D.NRO_OCOMPRA = '201902702' AND D.NRO_PARCIAL = '03' AND D.COD_CADENAD = 'BA' AND D.COD_PRODUCTO = '6640800' ";
 
 
                 using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
@@ -555,15 +560,15 @@ namespace CapaInterface
                     /*selecccionando el archivo TOCOMPRADX */
                     using (NpgsqlCommand cmd = new NpgsqlCommand(sql_tocompradx, cn))
                     {
-                        cmd.CommandTimeout = 0;
+                        cmd.CommandTimeout = 5 * 60; // 5 minutos
                         using (NpgsqlDataAdapter da = new NpgsqlDataAdapter(cmd))
                         {
                             dt_tocompradx = new DataTable();
                             da.Fill(dt_tocompradx);
-                            cn.Close();
                         }
                         dt_tocompradx.TableName = "TOCOMPRADX";
                     }
+                    cn.Close();
 
                 }
 
@@ -794,8 +799,8 @@ namespace CapaInterface
                                 "AND LENGTH(D.COD_PRODUCTO) = 7 " +
                                 "AND D.FLG_TXWMS != '1' " +                               // SOLO LAS ASN PENDIENTES DE ENVIO
                                 "AND C.FLG_TXWMS = '1' ";                                // SOLO LAS ASN A LAS ORDENES ENVIADAS
-                                //"AND CURRENT_DATE - C.FEC_EMISION <= " + Dias;
-                // b.liq_fecha >= GETDATE() - @dias
+                                                                                         //"AND CURRENT_DATE - C.FEC_EMISION <= " + Dias;
+                                                                                         // b.liq_fecha >= GETDATE() - @dias
 
                 //"AND D.NRO_OCOMPRA = '201902645' AND D.NRO_PARCIAL = '06' AND D.COD_CADENAD = 'BA' ";
                 //"AND D.NRO_OCOMPRA = '201902702' AND D.NRO_PARCIAL = '03' AND D.COD_CADENAD = 'BA' AND D.COD_PRODUCTO = '6640800' ";
@@ -805,15 +810,15 @@ namespace CapaInterface
                     /*selecccionando el archivo TOCOMPRACX */
                     using (NpgsqlCommand cmd = new NpgsqlCommand(sql_tocompracx, cn))
                     {
-                        cmd.CommandTimeout = 0;
+                        cmd.CommandTimeout = 5 * 60; // 5 minutos
                         using (NpgsqlDataAdapter da = new NpgsqlDataAdapter(cmd))
                         {
                             dt_tocompracx = new DataTable();
                             da.Fill(dt_tocompracx);
-                            cn.Close();
                         }
                         dt_tocompracx.TableName = "TOCOMPRACX";
                     }
+                    cn.Close();
                 }
 
                 if ((dt_tocompracx != null && dt_tocompracx.Rows.Count > 0))
@@ -855,6 +860,7 @@ namespace CapaInterface
             catch (Exception ex)
             {
                 LogUtil.Graba_Log(Interface, ex.Message, true, "Procesa_Data_Cab");
+
             }
             return dt_tabla;
 
