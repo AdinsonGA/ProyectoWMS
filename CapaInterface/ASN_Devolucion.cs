@@ -74,12 +74,12 @@ namespace CapaInterface
                     {
                         if (ii == 1)
                         {
+                            wcd = "50001";
+                        }
+                        else
+                        {
                             wcd = "50003";
                         }
-                        //else
-                        //{
-                        //    wcd = "50003";
-                        //}
 
                         if (Genera_FileTXT(wcd))
                         {
@@ -91,12 +91,10 @@ namespace CapaInterface
                         }
                     }
 
-                    //if (Actualiza_Flag_Data())
-                    //{
-                    //    exito = true;
-                    //}
-
-                    
+                    if (Actualiza_Flag_Data())
+                    {
+                        exito = true;
+                    }
 
                     //}
                 }

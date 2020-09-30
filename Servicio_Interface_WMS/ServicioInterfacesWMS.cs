@@ -125,11 +125,14 @@ namespace CapaServicio
             ConfigurationManager.RefreshSection("appSettings"); // Primero actualiza seccion
             try
             {
+                if (ConfigurationManager.AppSettings["processPrescrip"] == "1")
+                {
 
-                Timer timer = (Timer)sender;
-                timer.Interval = 60 * 60 * 1000;      // Change the interval to whatever (1 hora)
-                DatosGenerales.Llena_CDxAlm();
-                LogUtil.Graba_Log("SERVICIO", ConfigurationManager.AppSettings["M011"].ToString(), false, "");
+                    Timer timer = (Timer)sender;
+                    timer.Interval = 60 * 60 * 1000;      // Change the interval to whatever (1 hora)
+                    DatosGenerales.Llena_CDxAlm();
+                    LogUtil.Graba_Log("SERVICIO", ConfigurationManager.AppSettings["M011"].ToString(), false, "");
+                }
 
             }
             catch (Exception ex)
