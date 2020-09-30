@@ -170,6 +170,7 @@ namespace CapaInterface
 
                 //foreach (var caden in listaCade)
 
+
                 string sql_upd = "UPDATE BDPOS.dbo.FVDESPC SET FLAG_WMS=1 WHERE ltrim(rtrim(desc_almac)) + ltrim(rtrim(desc_gudis)) IN (" + cade + ")";
 
                 try
