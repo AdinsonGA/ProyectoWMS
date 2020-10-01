@@ -588,7 +588,7 @@ namespace CapaInterface
                     /*selecccionando el archivo TOCOMPRADX */
                     using (NpgsqlCommand cmd = new NpgsqlCommand(sql_tocompradx, cn))
                     {
-                        cmd.CommandTimeout = 5 * 60; // 5 minutos
+                        cmd.CommandTimeout = 30 * 60; // 5 minutos
                         using (NpgsqlDataAdapter da = new NpgsqlDataAdapter(cmd))
                         {
                             dt_tocompradx = new DataTable();
