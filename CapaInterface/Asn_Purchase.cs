@@ -8,6 +8,7 @@ using System.Data;
 using System.IO;
 using Npgsql;
 using System.Configuration;
+using System.Data.SqlClient;
 
 
 namespace CapaInterface
@@ -504,64 +505,61 @@ namespace CapaInterface
 
             try
             {
-                sql_tocompradx = "SELECT C.NRO_PROFORM AS LLAVE01 " +
-                                          ", D.NRO_OCOMPRA || D.NRO_PARCIAL || D.COD_CADENAD AS LLAVE02 " +
-                                          ", " + wCD + " AS CD " +
-                                          ", '" + codcia + "' AS EMPRESA " +
-                                          ", 'CREATE' AS ACCION " +
-                                          //", 'UPDATE' AS ACCION " +
-                                          ", CASE WHEN C.TIP_ORIGEN = 'I' THEN 'IMP' ELSE 'NAC' END TIPO " +    // I = IMPORTADO, N = NACIONAL
-                                          ", D.COD_PRODUCTO || D.COD_CALID AS ITEM " +
-                                          ", CASE WHEN OCD.COD_SECCI IS NULL THEN '' ELSE OCD.COD_SECCI END AS COD_SECCI " +
-                                          ", CASE WHEN D.COD_CPACK IS NULL THEN '' ELSE D.COD_CPACK END AS COD_CPACK " +
-                                          ", CASE WHEN D.CAN_MED00 IS NULL THEN 0 ELSE D.CAN_MED00 END AS CANTIDAD " +
-                                          ", CASE WHEN D.CAN_MED00 IS NULL THEN 0 ELSE D.CAN_MED00 END AS CAN_MED01 " +
-                                          ", CASE WHEN D.CAN_MED01 IS NULL THEN 0 ELSE D.CAN_MED01 END AS CAN_MED02 " +
-                                          ", CASE WHEN D.CAN_MED02 IS NULL THEN 0 ELSE D.CAN_MED02 END AS CAN_MED03 " +
-                                          ", CASE WHEN D.CAN_MED03 IS NULL THEN 0 ELSE D.CAN_MED03 END AS CAN_MED04 " +
-                                          ", CASE WHEN D.CAN_MED04 IS NULL THEN 0 ELSE D.CAN_MED04 END AS CAN_MED05 " +
-                                          ", CASE WHEN D.CAN_MED05 IS NULL THEN 0 ELSE D.CAN_MED05 END AS CAN_MED06 " +
-                                          ", CASE WHEN D.CAN_MED06 IS NULL THEN 0 ELSE D.CAN_MED06 END AS CAN_MED07 " +
-                                          ", CASE WHEN D.CAN_MED07 IS NULL THEN 0 ELSE D.CAN_MED07 END AS CAN_MED08 " +
-                                          ", CASE WHEN D.CAN_MED08 IS NULL THEN 0 ELSE D.CAN_MED08 END AS CAN_MED09 " +
-                                          ", CASE WHEN D.CAN_MED09 IS NULL THEN 0 ELSE D.CAN_MED09 END AS CAN_MED10 " +
-                                          ", CASE WHEN D.CAN_MED10 IS NULL THEN 0 ELSE D.CAN_MED10 END AS CAN_MED11 " +
-                                          ", CASE WHEN D.CAN_MED11 IS NULL THEN 0 ELSE D.CAN_MED11 END AS CAN_MED12 " +
-                                          ", CASE WHEN D.COD_CADENAD IS NULL THEN '' ELSE D.COD_CADENAD END AS COD_CADENAD " +
-                                          ", CASE WHEN TG.DES_CAMPO2 IS NULL THEN '' ELSE SUBSTRING(TG.DES_CAMPO2, 1, 1) END AS COD_ALMACEN " +
-                                          ", CASE WHEN D.CAN_PPACK IS NULL THEN 0 ELSE D.CAN_PPACK END AS CAN_PPACK " +
-                                          "FROM TOCOMPRAPLX_ASN D " +
-                                          "LEFT JOIN TOCOMPRACX C ON C.NRO_OCOMPRA = D.NRO_OCOMPRA " +
-                                          "INNER JOIN TOCOMPRADX OCD ON D.NRO_OCOMPRA  = OCD.NRO_OCOMPRA " +
-                                          "                         AND D.COD_PRODUCTO = OCD.COD_PRODUCTO " +
-                                          "                         AND D.COD_CALID    = OCD.COD_CALID " +
-                                          "                         AND D.COD_CADENAD  = OCD.COD_CADENAD " +
-                                          "                         AND D.COD_CPACK    = OCD.COD_CPACK " +
-                                          "INNER JOIN TCADENA CA ON D.COD_CADENAD      = CA.COD_CADENA " +
-                                          "LEFT JOIN TIMP_EXPEDIENTE EX ON D.NRO_FCOMERCI = EX.NRO_FCOMERCI AND D.NRO_OCOMPRA || D.NRO_PARCIAL = EX.NRO_OCOMPRA " +
-                                          "INNER JOIN TGENERALD TG ON D.COD_CADENAD = TG.DES_CAMPO4 " +
-                                          "AND " + wCD + "|| 'P' = TG.DES_CAMPO5 " +
-                                          "WHERE C.COD_SECCI NOT IN('M','V') " +                        // NO SE CONSIDERA (MATERIALES, VARIOS) DE LA CABECERA
-                                          "AND C.TIP_ESTAD NOT IN('D','C','K') " +                      // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) DE LA CABECERA DE LA ORDEN
-                                          "AND OCD.TIP_ESTAD NOT IN('D','T','K') " +                    // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) DEL DETALLE DE LA ORDEN
-                                          "AND D.TIP_ESTAD NOT IN('D') " +                              // NO CONSIDERAR (DESACTIVOS) DEL ASN
-                                          "AND C.NRO_OCOMPRA != '' " +                                  // SOLO LAS ORDENES QUE TENGAN NUMERO DE ORDEN DE COMPRA
-                                          "AND " + wfiltro +
-                                          "AND LENGTH(D.COD_PRODUCTO) = 7 " +
-                                          "AND D.FLG_TXWMS != '1' " +                                   // SOLO LAS ASN PENDIENTES DE ENVIO
-                                          "AND C.FLG_TXWMS = '1' ";                                    // SOLO LAS ASN REFERENCIADAS A ORDENES QUE SE ENVIARON ANTERIORMENTE
-                                                                                                       //"AND CURRENT_DATE - C.FEC_EMISION <= " + Dias;
-                                                                                                       //"AND D.NRO_OCOMPRA = '201902645' AND D.NRO_PARCIAL = '06' AND D.COD_CADENAD = 'BA' ";
-                                                                                                       //"AND D.NRO_OCOMPRA = '201902702' AND D.NRO_PARCIAL = '03' AND D.COD_CADENAD = 'BA' AND D.COD_PRODUCTO = '6640800' ";
+                string sql_tocompradx = "EXEC [USP_ASN_DETALLE] " + wCD;
+                //sql_tocompradx = "SELECT C.NRO_PROFORM AS LLAVE01 " +
+                //                          ", D.NRO_OCOMPRA || D.NRO_PARCIAL || D.COD_CADENAD AS LLAVE02 " +
+                //                          ", " + wCD + " AS CD " +
+                //                          ", '" + codcia + "' AS EMPRESA " +
+                //                          ", 'CREATE' AS ACCION " +
+                //                          //", 'UPDATE' AS ACCION " +
+                //                          ", CASE WHEN C.TIP_ORIGEN = 'I' THEN 'IMP' ELSE 'NAC' END TIPO " +    // I = IMPORTADO, N = NACIONAL
+                //                          ", D.COD_PRODUCTO || D.COD_CALID AS ITEM " +
+                //                          ", CASE WHEN OCD.COD_SECCI IS NULL THEN '' ELSE OCD.COD_SECCI END AS COD_SECCI " +
+                //                          ", CASE WHEN D.COD_CPACK IS NULL THEN '' ELSE D.COD_CPACK END AS COD_CPACK " +
+                //                          ", CASE WHEN D.CAN_MED00 IS NULL THEN 0 ELSE D.CAN_MED00 END AS CANTIDAD " +
+                //                          ", CASE WHEN D.CAN_MED00 IS NULL THEN 0 ELSE D.CAN_MED00 END AS CAN_MED01 " +
+                //                          ", CASE WHEN D.CAN_MED01 IS NULL THEN 0 ELSE D.CAN_MED01 END AS CAN_MED02 " +
+                //                          ", CASE WHEN D.CAN_MED02 IS NULL THEN 0 ELSE D.CAN_MED02 END AS CAN_MED03 " +
+                //                          ", CASE WHEN D.CAN_MED03 IS NULL THEN 0 ELSE D.CAN_MED03 END AS CAN_MED04 " +
+                //                          ", CASE WHEN D.CAN_MED04 IS NULL THEN 0 ELSE D.CAN_MED04 END AS CAN_MED05 " +
+                //                          ", CASE WHEN D.CAN_MED05 IS NULL THEN 0 ELSE D.CAN_MED05 END AS CAN_MED06 " +
+                //                          ", CASE WHEN D.CAN_MED06 IS NULL THEN 0 ELSE D.CAN_MED06 END AS CAN_MED07 " +
+                //                          ", CASE WHEN D.CAN_MED07 IS NULL THEN 0 ELSE D.CAN_MED07 END AS CAN_MED08 " +
+                //                          ", CASE WHEN D.CAN_MED08 IS NULL THEN 0 ELSE D.CAN_MED08 END AS CAN_MED09 " +
+                //                          ", CASE WHEN D.CAN_MED09 IS NULL THEN 0 ELSE D.CAN_MED09 END AS CAN_MED10 " +
+                //                          ", CASE WHEN D.CAN_MED10 IS NULL THEN 0 ELSE D.CAN_MED10 END AS CAN_MED11 " +
+                //                          ", CASE WHEN D.CAN_MED11 IS NULL THEN 0 ELSE D.CAN_MED11 END AS CAN_MED12 " +
+                //                          ", CASE WHEN D.COD_CADENAD IS NULL THEN '' ELSE D.COD_CADENAD END AS COD_CADENAD " +
+                //                          ", CASE WHEN TG.DES_CAMPO2 IS NULL THEN '' ELSE SUBSTRING(TG.DES_CAMPO2, 1, 1) END AS COD_ALMACEN " +
+                //                          ", CASE WHEN D.CAN_PPACK IS NULL THEN 0 ELSE D.CAN_PPACK END AS CAN_PPACK " +
+                //                          "FROM TOCOMPRAPLX_ASN D " +
+                //                          "LEFT JOIN TOCOMPRACX C ON C.NRO_OCOMPRA = D.NRO_OCOMPRA " +
+                //                          "INNER JOIN TOCOMPRADX OCD ON D.NRO_OCOMPRA  = OCD.NRO_OCOMPRA " +
+                //                          "                         AND D.COD_PRODUCTO = OCD.COD_PRODUCTO " +
+                //                          "                         AND D.COD_CALID    = OCD.COD_CALID " +
+                //                          "                         AND D.COD_CADENAD  = OCD.COD_CADENAD " +
+                //                          "                         AND D.COD_CPACK    = OCD.COD_CPACK " +
+                //                          "INNER JOIN TCADENA CA ON D.COD_CADENAD      = CA.COD_CADENA " +
+                //                          "LEFT JOIN TIMP_EXPEDIENTE EX ON D.NRO_FCOMERCI = EX.NRO_FCOMERCI AND D.NRO_OCOMPRA || D.NRO_PARCIAL = EX.NRO_OCOMPRA " +
+                //                          "INNER JOIN TGENERALD TG ON D.COD_CADENAD = TG.DES_CAMPO4 " +
+                //                          "AND " + wCD + "|| 'P' = TG.DES_CAMPO5 " +
+                //                          "WHERE C.COD_SECCI NOT IN('M','V') " +                        // NO SE CONSIDERA (MATERIALES, VARIOS) DE LA CABECERA
+                //                          "AND C.TIP_ESTAD NOT IN('D','C','K') " +                      // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) DE LA CABECERA DE LA ORDEN
+                //                          "AND OCD.TIP_ESTAD NOT IN('D','T','K') " +                    // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) DEL DETALLE DE LA ORDEN
+                //                          "AND D.TIP_ESTAD NOT IN('D') " +                              // NO CONSIDERAR (DESACTIVOS) DEL ASN
+                //                          "AND C.NRO_OCOMPRA != '' " +                                  // SOLO LAS ORDENES QUE TENGAN NUMERO DE ORDEN DE COMPRA
+                //                          "AND " + wfiltro +
+                //                          "AND LENGTH(D.COD_PRODUCTO) = 7 " +
+                //                          "AND D.FLG_TXWMS != '1' " +                                   // SOLO LAS ASN PENDIENTES DE ENVIO
+                //                          "AND C.FLG_TXWMS = '1' ";                                    // SOLO LAS ASN REFERENCIADAS A ORDENES QUE SE ENVIARON ANTERIORMENTE
 
-
-                using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
+                using (SqlConnection cn = new SqlConnection(Conexion.conexion))
                 {
                     /*selecccionando el archivo TOCOMPRADX */
-                    using (NpgsqlCommand cmd = new NpgsqlCommand(sql_tocompradx, cn))
+                    using (SqlCommand cmd = new SqlCommand(sql_tocompradx, cn))
                     {
                         cmd.CommandTimeout = 5 * 60; // 5 minutos
-                        using (NpgsqlDataAdapter da = new NpgsqlDataAdapter(cmd))
+                        using (SqlDataAdapter da = new SqlDataAdapter(cmd))
                         {
                             dt_tocompradx = new DataTable();
                             da.Fill(dt_tocompradx);
@@ -759,59 +757,55 @@ namespace CapaInterface
             try
             {
 
-                string sql_tocompracx = "";
+                string sql_tocompracx = "EXEC [USP_ASN_CABECERA] " + wCD;
 
                 //-----------------------
                 //------ CABECERA -------
                 //-----------------------
 
-                sql_tocompracx = "SELECT DISTINCT C.NRO_PROFORM AS LLAVE01 " +
-                                ", D.NRO_OCOMPRA || D.NRO_PARCIAL || D.COD_CADENAD AS LLAVE02 " +
-                                ", " + wCD + " AS CD " +
-                                ", " + codcia + " AS EMPRESA " +
-                                ", '' AS TRAILER_NBR " +
-                                ", 'CREATE' AS ACCION " +
-                                //", 'UPDATE' AS ACCION " +
-                                ", '' AS REF_NBR " +
-                                ", CASE WHEN C.TIP_ORIGEN = 'N' THEN 'NAC' ELSE 'IMP' END AS TIPO " + // N = NACIONAL, I = IMPORTADO
-                                ", '' AS LOAD_NBR " +
-                                ", '' AS MANIFEST_NBR " +
-                                ", '' AS TRAILER_TYPE " +
-                                ", EX.NRO_EXPEDIE AS VENDOR_INFO " +
-                                ", C.COD_PROVE AS ORIGIN_INFO " +
-                                ", '' AS ORIGIN_CODE " +
-                                ", '' AS ORIGIN_SHIPPED_UNITS " +
-                                ", '' AS LOCK_CODE " +
-                                ", TO_CHAR(C.FEC_ENTINI, 'YYYYMMDD') AS FECHA " +
-                                ", '' AS ORIG_SHIPPED_LPNS " +
-                                ", CASE WHEN C.TIP_ORIGEN = 'N' THEN '23' ELSE '24' END AS CUST_FIELD_1 " + // 23 = NACIONAL, 24 = IMPORTADO
-                                ", COD_MONEDA " +
-                                ", EX.NRO_FCOMERCI " +
-                                "FROM TOCOMPRAPLX_ASN D " +
-                                "LEFT JOIN TOCOMPRACX C ON C.NRO_OCOMPRA = D.NRO_OCOMPRA " +
-                                "INNER JOIN TCADENA CA ON D.COD_CADENAD = CA.COD_CADENA " +
-                                "LEFT JOIN TIMP_EXPEDIENTE EX ON D.NRO_FCOMERCI = EX.NRO_FCOMERCI AND D.NRO_OCOMPRA || D.NRO_PARCIAL = EX.NRO_OCOMPRA " +
-                                "WHERE C.COD_SECCI NOT IN('M','V') " +                    // NO CONSIDERAR (MATERIALES, VARIOS)
-                                "AND C.TIP_ESTAD NOT IN('D','C','K') " +                  // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) CABECERA DE ORDEN 
-                                "AND D.TIP_ESTAD NOT IN('D','T','K') " +                  // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) DETALLE DE ORDEN 
-                                "AND C.NRO_OCOMPRA != '' " +                              // SOLO ORDENES CON NUMERO DE ORDEN DE COMPRA
-                                "AND " + wfiltro +
-                                "AND LENGTH(D.COD_PRODUCTO) = 7 " +
-                                "AND D.FLG_TXWMS != '1' " +                               // SOLO LAS ASN PENDIENTES DE ENVIO
-                                "AND C.FLG_TXWMS = '1' ";                                // SOLO LAS ASN A LAS ORDENES ENVIADAS
-                                                                                         //"AND CURRENT_DATE - C.FEC_EMISION <= " + Dias;
-                                                                                         // b.liq_fecha >= GETDATE() - @dias
+                //sql_tocompracx = "SELECT DISTINCT C.NRO_PROFORM AS LLAVE01 " +
+                //                ", D.NRO_OCOMPRA || D.NRO_PARCIAL || D.COD_CADENAD AS LLAVE02 " +
+                //                ", " + wCD + " AS CD " +
+                //                ", " + codcia + " AS EMPRESA " +
+                //                ", '' AS TRAILER_NBR " +
+                //                ", 'CREATE' AS ACCION " +
+                //                //", 'UPDATE' AS ACCION " +
+                //                ", '' AS REF_NBR " +
+                //                ", CASE WHEN C.TIP_ORIGEN = 'N' THEN 'NAC' ELSE 'IMP' END AS TIPO " + // N = NACIONAL, I = IMPORTADO
+                //                ", '' AS LOAD_NBR " +
+                //                ", '' AS MANIFEST_NBR " +
+                //                ", '' AS TRAILER_TYPE " +
+                //                ", EX.NRO_EXPEDIE AS VENDOR_INFO " +
+                //                ", C.COD_PROVE AS ORIGIN_INFO " +
+                //                ", '' AS ORIGIN_CODE " +
+                //                ", '' AS ORIGIN_SHIPPED_UNITS " +
+                //                ", '' AS LOCK_CODE " +
+                //                ", TO_CHAR(C.FEC_ENTINI, 'YYYYMMDD') AS FECHA " +
+                //                ", '' AS ORIG_SHIPPED_LPNS " +
+                //                ", CASE WHEN C.TIP_ORIGEN = 'N' THEN '23' ELSE '24' END AS CUST_FIELD_1 " + // 23 = NACIONAL, 24 = IMPORTADO
+                //                ", COD_MONEDA " +
+                //                ", EX.NRO_FCOMERCI " +
+                //                "FROM TOCOMPRAPLX_ASN D " +
+                //                "LEFT JOIN TOCOMPRACX C ON C.NRO_OCOMPRA = D.NRO_OCOMPRA " +
+                //                "INNER JOIN TCADENA CA ON D.COD_CADENAD = CA.COD_CADENA " +
+                //                "LEFT JOIN TIMP_EXPEDIENTE EX ON D.NRO_FCOMERCI = EX.NRO_FCOMERCI AND D.NRO_OCOMPRA || D.NRO_PARCIAL = EX.NRO_OCOMPRA " +
+                //                "WHERE C.COD_SECCI NOT IN('M','V') " +                    // NO CONSIDERAR (MATERIALES, VARIOS)
+                //                "AND C.TIP_ESTAD NOT IN('D','C','K') " +                  // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) CABECERA DE ORDEN 
+                //                "AND D.TIP_ESTAD NOT IN('D','T','K') " +                  // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS) DETALLE DE ORDEN 
+                //                "AND C.NRO_OCOMPRA != '' " +                              // SOLO ORDENES CON NUMERO DE ORDEN DE COMPRA
+                //                "AND " + wfiltro +
+                //                "AND LENGTH(D.COD_PRODUCTO) = 7 " +
+                //                "AND D.FLG_TXWMS != '1' " +                               // SOLO LAS ASN PENDIENTES DE ENVIO
+                //                "AND C.FLG_TXWMS = '1' ";                                // SOLO LAS ASN A LAS ORDENES ENVIADAS
 
-                //"AND D.NRO_OCOMPRA = '201902645' AND D.NRO_PARCIAL = '06' AND D.COD_CADENAD = 'BA' ";
-                //"AND D.NRO_OCOMPRA = '201902702' AND D.NRO_PARCIAL = '03' AND D.COD_CADENAD = 'BA' AND D.COD_PRODUCTO = '6640800' ";
-
-                using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
+                //using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
+                using (SqlConnection cn = new SqlConnection(Conexion.conexion))
                 {
                     /*selecccionando el archivo TOCOMPRACX */
-                    using (NpgsqlCommand cmd = new NpgsqlCommand(sql_tocompracx, cn))
+                    using (SqlCommand cmd = new SqlCommand(sql_tocompracx, cn))
                     {
                         cmd.CommandTimeout = 5 * 60; // 5 minutos
-                        using (NpgsqlDataAdapter da = new NpgsqlDataAdapter(cmd))
+                        using (SqlDataAdapter da = new SqlDataAdapter(cmd))
                         {
                             dt_tocompracx = new DataTable();
                             da.Fill(dt_tocompracx);
