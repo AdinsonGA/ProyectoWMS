@@ -70,7 +70,7 @@ namespace CapaInterface
                     //    else
                     //        wcd = "50003";
 
-                    for (int ii = 1; ii <= 1; ii++)
+                    for (int ii = 1; ii <= 2; ii++)
                     {
                         if (ii == 1)
                         {
@@ -441,7 +441,7 @@ namespace CapaInterface
             string msgerror = "";
 
             // CABECERA
-            string sql = "[USP_WMS_Obt_Devoluciones_Tda_2]";
+            string sql = "[USP_WMS_Obt_Devoluciones_Tda]";
             //string sql = "select * from BDPOS.dbo.FVDESPC where DESC_FECHA>=GETDATE()-7";
             dt_cab = Conexion.Obt_SQL(sql, ref msgerror, "C", Dias);
 

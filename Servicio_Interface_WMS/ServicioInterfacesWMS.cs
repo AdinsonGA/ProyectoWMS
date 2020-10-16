@@ -93,7 +93,7 @@ namespace CapaServicio
             tmservicio_Leer_FTP.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_Leer_FTP);
 
             // ASN Devoluciones de Tiendas
-            tmservicio_ASN_Devol = new Timer(3 * minutos); //10M
+            tmservicio_ASN_Devol = new Timer(10 * minutos); //3M
             tmservicio_ASN_Devol.Elapsed += new ElapsedEventHandler(tmpServicio_Elapsed_ASN_Devol);
 
             // order HDR, DTL carrito
