@@ -503,6 +503,7 @@ namespace CapaInterface
                 wCD = "50003";
             }
 
+
             try
             {
                 string sql_tocompradx = "EXEC [USP_ASN_DETALLE] " + wCD;
