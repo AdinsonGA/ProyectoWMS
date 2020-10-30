@@ -8,6 +8,7 @@ using System.Data;
 using System.IO;
 using Npgsql;
 using System.Configuration;
+using System.Data.SqlClient;
 
 namespace CapaInterface
 {
@@ -151,35 +152,6 @@ namespace CapaInterface
             exito = true;
             return exito;
         }
-
-        /**/
-        //using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
-        //{
-        //    try
-        //    {
-        //        cn.Open();
-
-        //        for (int ix = 0; ix < ds_cab.Tables[0].Rows.Count; ix++)
-        //        {
-        //            string wnro_ocompra = "";
-        //            //string wsql = "";
-
-        //            wnro_ocompra = ds_cab.Tables[0].Rows[ix][1].ToString();
-        //            string query = "UPDATE TOCOMPRACX SET FLG_TXWMS = '1' WHERE NRO_OCOMPRA = '" + wnro_ocompra + "'";
-        //            var cmd = new NpgsqlCommand(query, cn);
-        //            cmd.ExecuteNonQuery();
-        //        }
-
-        //    }
-        //    catch (Exception)
-        //    {
-        //        throw;
-        //    }
-        //}
-        /**/
-
-
-
 
 
 
@@ -521,75 +493,31 @@ namespace CapaInterface
             DataTable dt_tocompradx = null;
             ds_det = new DataSet();
 
-            string sql_tocompradx, wfiltro = "", wCD = "";
-            string codcia = "730";
+            string wCD = "";
 
             if (modo == "C")            // Es Chorillos
             {
-                wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50001') ";
+                //wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50001') ";
                 wCD = "50001";
             }
             if (modo == "L")            // Lurin
             {
-                wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50003') ";
+                //wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50003') ";
                 wCD = "50003";
             }
 
 
             try
             {
-                sql_tocompradx = "SELECT TD.NRO_PROFORM AS LLAVE01 " +
-                                          ", TD.NRO_OCOMPRA AS LLAVE02 " +
-                                          ", " + wCD + " AS CD, '" +
-                                          codcia + "' AS EMPRESA " +
-                                          ", MAX(TD.NRO_ITEM) AS NRO_ITEM " +
-                                          ", 'CREATE' AS TIPO " +
-                                          //", 'UPDATE' AS TIPO " +
-                                          ", TD.COD_PRODUCTO || TD.COD_CALID AS ITEM " +
-                                          ", MAX(CASE WHEN TD.COD_SECCI IS NULL THEN '' ELSE TD.COD_SECCI END) AS COD_SECCI " +
-                                          ", CASE WHEN TD.COD_CPACK IS NULL THEN '' ELSE TD.COD_CPACK END AS COD_CPACK " +
-                                          ", SUM(TD.CAN_MED00) AS CANTIDAD " +
-                                          ", MAX(TD.VAL_PRECIO) AS VAL_PRECIO " +
-                                          ", '' AS COD_CADENAD " +
-                                          ", MAX(SUBSTRING(TG.DES_CAMPO2, 1, 1)) AS COD_ALMAC " +
-                                          ", SUM(CASE WHEN TD.CAN_MED00 IS NULL THEN 0 ELSE TD.CAN_MED00 END) AS CAN_MED01 " +
-                                          ", SUM(CASE WHEN TD.CAN_MED01 IS NULL THEN 0 ELSE TD.CAN_MED01 END) AS CAN_MED02 " +
-                                          ", SUM(CASE WHEN TD.CAN_MED02 IS NULL THEN 0 ELSE TD.CAN_MED02 END) AS CAN_MED03 " +
-                                          ", SUM(CASE WHEN TD.CAN_MED03 IS NULL THEN 0 ELSE TD.CAN_MED03 END) AS CAN_MED04 " +
-                                          ", SUM(CASE WHEN TD.CAN_MED04 IS NULL THEN 0 ELSE TD.CAN_MED04 END) AS CAN_MED05 " +
-                                          ", SUM(CASE WHEN TD.CAN_MED05 IS NULL THEN 0 ELSE TD.CAN_MED05 END) AS CAN_MED06 " +
-                                          ", SUM(CASE WHEN TD.CAN_MED06 IS NULL THEN 0 ELSE TD.CAN_MED06 END) AS CAN_MED07 " +
-                                          ", SUM(CASE WHEN TD.CAN_MED07 IS NULL THEN 0 ELSE TD.CAN_MED07 END) AS CAN_MED08 " +
-                                          ", SUM(CASE WHEN TD.CAN_MED08 IS NULL THEN 0 ELSE TD.CAN_MED08 END) AS CAN_MED09 " +
-                                          ", SUM(CASE WHEN TD.CAN_MED09 IS NULL THEN 0 ELSE TD.CAN_MED09 END) AS CAN_MED10 " +
-                                          ", SUM(CASE WHEN TD.CAN_MED10 IS NULL THEN 0 ELSE TD.CAN_MED10 END) AS CAN_MED11 " +
-                                          ", SUM(CASE WHEN TD.CAN_MED11 IS NULL THEN 0 ELSE TD.CAN_MED11 END) AS CAN_MED12 " +
-                                          ", MAX(CASE WHEN CA.DES_CDS IS NULL THEN '' ELSE CA.DES_CDS END) AS DES_CDS " +
-                                          ", SUM(CASE WHEN TD.CAN_PPACK IS NULL THEN 0 ELSE TD.CAN_PPACK END) AS CAN_PPACK " +
-                                          "FROM TOCOMPRADX TD " +
-                                          "INNER JOIN TOCOMPRACX TC ON TD.NRO_OCOMPRA = TC.NRO_OCOMPRA " +
-                                          "INNER JOIN TCADENA CA ON TD.COD_CADENAD = CA.COD_CADENA " +
-                                          "INNER JOIN TGENERALD TG ON TG.COD_TABLA='056' AND TD.COD_CADENAD = TG.DES_CAMPO4 AND " + wCD + "|| 'P' = TG.DES_CAMPO5 " +
-                                          "WHERE TC.COD_SECCI NOT IN ('M','V') " +                     // NO CONSIDERAR (MATERIALES, VARIOS)
-                                          "AND TC.FLG_TXWMS != '1' " +                                  // SOLO LAS ORDENES PENDIENTES
-                                          "AND " + wfiltro +
-                                          "AND TC.TIP_ESTAD NOT IN('D','C','K') " +                     // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS), CABECERA DE ORDEN
-                                          "AND TD.TIP_ESTAD NOT IN ('D','T','K') " +                    // NO CONSIDERAR (DESACTIVOS, COMPLETOS, CANCELADOS), DETALLE DE ORDEN
-                                          "AND LENGTH(TD.COD_PRODUCTO) = 7 " +
-                                          "AND TC.COD_EMPRESA = '02' " +                                // SOLO PERU
-                                          "AND TC.FEC_EMISION >= '20170101' " +                         // A PARTIR DE ENE - 2017
-                                          "AND TRIM(TC.NRO_OCOMPRA) != '' " +                           // SOLO ORDENES QUE TENGAN ORDEN DE COMPRA
-                                          "AND CURRENT_DATE - TC.FEC_EMISION <= " + Dias +
-                                          "GROUP BY TD.NRO_PROFORM, TD.NRO_OCOMPRA, TD.COD_PRODUCTO, TD.COD_CALID, TD.COD_CPACK ";
+                string sql_tocompradx = "EXEC [USP_PURCHASE_DETALLE] " + wCD;
 
-
-                using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
+                using (SqlConnection cn = new SqlConnection(Conexion.conexion))
                 {
                     /*selecccionando el archivo TOCOMPRADX */
-                    using (NpgsqlCommand cmd = new NpgsqlCommand(sql_tocompradx, cn))
+                    using (SqlCommand cmd = new SqlCommand(sql_tocompradx, cn))
                     {
                         cmd.CommandTimeout = 30 * 60; // 5 minutos
-                        using (NpgsqlDataAdapter da = new NpgsqlDataAdapter(cmd))
+                        using (SqlDataAdapter da = new SqlDataAdapter(cmd))
                         {
                             dt_tocompradx = new DataTable();
                             da.Fill(dt_tocompradx);
@@ -776,69 +704,36 @@ namespace CapaInterface
             DataTable dt_tabla = new DataTable();
             DataTable dt_tocompracx = null;
 
-            string wfiltro = "", wCD = "";
-            string codcia = "730";
+            string wCD = "";
             StringBuilder str = new StringBuilder();
 
             if (modo == "C")            // Es Chorillos
             {
-                wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50001') ";
+                //wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50001') ";
                 wCD = "50001";
             }
             if (modo == "L")            // Lurin
             {
-                wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50003') ";
+                //wfiltro = " (LENGTH(CA.DES_CDS) > 5 OR CA.DES_CDS = '50003') ";
                 wCD = "50003";
             }
 
             try
             {
 
-                string sql_tocompracx = "";
-
                 //-----------------------
                 //------ CABECERA -------
                 //-----------------------
 
-                sql_tocompracx = "SELECT DISTINCT TC.NRO_PROFORM AS LLAVE01 " +
-                                ", TC.NRO_OCOMPRA AS LLAVE02 " +
-                                ", " + wCD + " AS CD " +
-                                ", " + codcia + " AS EMPRESA " +
-                                ", COD_PROVE " +
-                                ", 'CREATE' AS ACCION " +
-                                //", 'UPDATE' AS ACCION " +
-                                ", TO_CHAR(FEC_EMISION,'YYYYMMDD') AS FECHA " +
-                                ", '' AS BLANCO01 " +
-                                ", CASE WHEN TC.TIP_ORIGEN = 'I' THEN 'IMP' ELSE 'NAC' END TIPO " +
-                                ", TO_CHAR(FEC_EMBARQ,'YYYYMMDD') AS FECHAEMB " +
-                                ", '' AS BLANCO02 " +
-                                ", TO_CHAR(FEC_EMBARQ,'YYYYMMDD') AS FECHAEMB " +
-                                ", TO_CHAR(FEC_EMBARQ,'YYYYMMDD') AS FECHAEMB " +
-                                ", COD_MONEDA " +
-                                "FROM TOCOMPRACX TC " +
-                                "INNER JOIN TOCOMPRADX TD ON TC.NRO_OCOMPRA = TD.NRO_OCOMPRA " +
-                                "INNER JOIN TCADENA CA ON TD.COD_CADENAD = CA.COD_CADENA " +
-                                "WHERE TC.COD_SECCI NOT IN ('M','V') " +                    // NO CONSIDERAR (MATERIALES, VARIOS)
-                                "AND TC.FLG_TXWMS != '1' " +                                 // SOLO LAS PENDIENTES DE ENVIO
-                                "AND " + wfiltro +
-                                "AND TC.TIP_ESTAD NOT IN('D','C','K') " +
-                                "AND TD.TIP_ESTAD NOT IN ('D','T','K') " +                  // NO CONSIDERAR (DESACTIVOS, COMPLETOS Y CANCELADOS)
-                                "AND LENGTH(TD.COD_PRODUCTO) = 7 " +                        // SOLO LAS ORDENES DE ZAPATOS, ROPAS ETC, NO INCLUYE ECONOMATO OTROS
-                                "AND TC.COD_EMPRESA = '02' " +                              // SOLO PERU
-                                "AND TC.FEC_EMISION >= '20170101' " +                       // A PARTIR DEL ENER - 2017
-                                "AND TRIM(TC.NRO_OCOMPRA) != '' " +                         // SOLO ORDENES QUE TENGAN ORDEN DE COMPRA
-                                "AND CURRENT_DATE - TC.FEC_EMISION <= " + Dias;
+                string sql_tocompracx = "EXEC [USP_PURCHASE_CABECERA] " + wCD;
 
-
-                //"AND TC.NRO_OCOMPRA IN ('201902594') ";
-
-                using (NpgsqlConnection cn = new NpgsqlConnection(Conexion.conexion_Postgre))
+                using (SqlConnection cn = new SqlConnection(Conexion.conexion))
                 {
                     /*selecccionando el archivo TOCOMPRACX */
-                    using (NpgsqlCommand cmd = new NpgsqlCommand(sql_tocompracx, cn))
+                    using (SqlCommand cmd = new SqlCommand(sql_tocompracx, cn))
                     {
                         cmd.CommandTimeout = 5 * 60; // 5 minutos
-                        using (NpgsqlDataAdapter da = new NpgsqlDataAdapter(cmd))
+                        using (SqlDataAdapter da = new SqlDataAdapter(cmd))
                         {
                             dt_tocompracx = new DataTable();
                             da.Fill(dt_tocompracx);
