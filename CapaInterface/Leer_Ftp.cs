@@ -477,7 +477,23 @@ namespace CapaInterface
                                         string wcustomer_po_nbr = campos[45].ToString();
                                         string wdest_dept_nbr = campos[48].ToString();
                                         string worder_hdr_cust_field_1 = campos[49].ToString();
-                                        string worder_hdr_cust_field_2 = campos[50].ToString();
+
+
+
+                                        //string s = "User ";
+                                        //int end = s.IndexOf(" ");
+                                        //end = end == -1 ? s.Length : end;
+                                        //string palabra = s.Substring(0, end);
+
+
+                                        string s = campos[50].ToString();
+                                        int end = s.IndexOf(" ");
+                                        end = end == -1 ? s.Length : end;
+                                        string worder_hdr_cust_field_2 = s.Substring(0, end);
+
+                                        //string worder_hdr_cust_field_2 = campos[50].ToString();
+
+
                                         string worder_hdr_cust_field_3 = campos[51].ToString();
                                         string worder_hdr_cust_field_5 = campos[53].ToString();
 
