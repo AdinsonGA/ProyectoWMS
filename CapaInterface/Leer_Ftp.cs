@@ -320,6 +320,7 @@ namespace CapaInterface
                 dt_IHT.Columns.Add("reason_code", typeof(string)); // Nuevo
                 dt_IHT.Columns.Add("lock_code", typeof(string)); // Nuevo
                 dt_IHT.Columns.Add("lpn_nbr", typeof(string));
+                dt_IHT.Columns.Add("location", typeof(string)); // 23-11-2020
                 dt_IHT.Columns.Add("item_code", typeof(string));
                 dt_IHT.Columns.Add("item_alternate_code", typeof(string));
                 dt_IHT.Columns.Add("item_part_a", typeof(string));
@@ -805,6 +806,7 @@ namespace CapaInterface
                                     string wlock_code = campos[6].ToString();
 
                                     string wlpn_nbr = campos[7].ToString();
+                                    string wlocation = campos[8].ToString();//23-11-2020
                                     string witem_code = campos[9].ToString();
                                     string witem_alternate_code = campos[10].ToString();
 
@@ -866,7 +868,7 @@ namespace CapaInterface
                                     string wbilling_location_type = campos[73].ToString();
 
                                     dtAux_IHT.Rows.Add(wgroup_nbr, wseq_nbr, wfacility_code, wcompany_code, wactivity_code, wreason_code, wlock_code,
-                                        wlpn_nbr, witem_code, witem_alternate_code, witem_part_a, witem_part_b, witem_part_c, witem_part_d, witem_description,
+                                        wlpn_nbr, wlocation, witem_code, witem_alternate_code, witem_part_a, witem_part_b, witem_part_c, witem_part_d, witem_description,
                                         wshipment_nbr, wpo_nbr, wpo_line_nbr, worder_seq_nbr, worig_qty, wadj_qty, wlpns_shipped, wunits_shipped, wlpns_received,
                                         wunits_received, wref_code_1, wref_value_1, wref_value_2, wref_value_3, wcreate_date, wshipment_line_nbr,
                                         wwork_order_seq_nbr, wscreen_name, wmodule_name, worder_type, wshipment_type, wpo_type, wbilling_location_type);
