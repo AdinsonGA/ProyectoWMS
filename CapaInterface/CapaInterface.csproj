@@ -82,9 +82,6 @@
     <Compile Include="Stock.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\CapaDatos\CapaDatos.csproj">
       <Project>{9a7e3751-9e5e-4faa-ac51-4d02432da591}</Project>
       <Name>CapaDatos</Name>
