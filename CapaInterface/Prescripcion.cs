@@ -345,6 +345,7 @@ namespace CapaInterface
 
                     // 16-12-2020 ALMACEN I SE ENVIA CON CLIENTE GENERICO, SOLICITUD DE OFRACIO
                     var wcliente = (datarow["cgud_almac"].ToString() == "I") ? "92070" : datarow["cgud_tndcl"].ToString();
+
                     str.Append(wcliente + delimited);        // dest_facility_code (cod tienda)   
                     //str.Append(datarow["cgud_tndcl"].ToString() + delimited);        // dest_facility_code (cod tienda)                    
 
@@ -558,13 +559,20 @@ namespace CapaInterface
                         if (!(datarow["oc_clisuc"].ToString().Trim() == null || datarow["oc_clisuc"].ToString().Trim() == ""))
                             xtda = xtda + datarow["oc_clisuc"].ToString().Trim();
                     }
+                    else
+                    {
+                        // 16-12-2020 ALMACEN I SE ENVIA CON CLIENTE GENERICO, SOLICITUD DE OFRACIO
+                        if (datarow["oc_almac"].ToString() == "I")
+                            xtda = "92070";
+                    }
 
                     str.Append(xtda + delimited);                                    // dest_facility_code (cod cliente)
                     str.Append("" + delimited);
                     str.Append("" + delimited);
                     str.Append("" + delimited);
                     str.Append("" + delimited);
-                    str.Append("" + delimited);
+                    str.Append("" + delimited);                    
+
                     str.Append(waction + delimited);                                 // action code
                     str.Append("" + delimited);
                     str.Append("" + delimited);
@@ -605,6 +613,12 @@ namespace CapaInterface
                     str.Append(datarow["oc_almac"].ToString() + delimited);         // Almacen 
                     str.Append(datarow["oc_canal"].ToString() + delimited);         // 5 , 6 
                     str.Append(datarow["oc_ccli"].ToString() + delimited);          // RUC destinatario
+
+                    for (int i = 1; i <= 25; i++)
+                    { str.Append("" + delimited); };
+
+                    str.Append(datarow["oc_client"].ToString().Trim() + delimited);  // hdr_cust_short_text_5 (cliente original)
+
                     str.Append("\r\n");
 
                     // ACUMULAMOS EN UNA LISTA PARA HACER EL UPDATE DEL FLAG MAS ABAJO
