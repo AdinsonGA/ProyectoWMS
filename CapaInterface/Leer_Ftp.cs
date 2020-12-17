@@ -238,6 +238,9 @@ namespace CapaInterface
                 
                 dt_OBS.Columns.Add("invn_attr_f", typeof(string));
                 dt_OBS.Columns.Add("order_type", typeof(string));
+
+                dt_OBS.Columns.Add("order_hdr_cust_short_text_5", typeof(string));//Nombre del CLiente original
+
                 dt_OBS.Columns.Add("ob_lpn_length", typeof(decimal));
                 dt_OBS.Columns.Add("ob_lpn_width", typeof(decimal));
                 dt_OBS.Columns.Add("ob_lpn_height", typeof(decimal));
@@ -360,9 +363,6 @@ namespace CapaInterface
 
                 if (wtipo == "OBL")
                 {
-                    //Arr_Txt_Obl = Directory.GetFiles(@carpetatemporal, "OBL*.*");//cabecera
-                    //Arr_Txt_Obs = Directory.GetFiles(@carpetatemporal, "OBS*.*");//detalle
-
                     if ((Arr_Txt_Obl.Length == 0) && (Arr_Txt_Obs.Length == 0)) // Si no hay informacion... retorna
                     {
                         return false;
@@ -479,21 +479,10 @@ namespace CapaInterface
                                         string wdest_dept_nbr = campos[48].ToString();
                                         string worder_hdr_cust_field_1 = campos[49].ToString();
 
-
-
-                                        //string s = "User ";
-                                        //int end = s.IndexOf(" ");
-                                        //end = end == -1 ? s.Length : end;
-                                        //string palabra = s.Substring(0, end);
-
-
                                         string s = campos[50].ToString();
                                         int end = s.IndexOf(" ");
                                         end = end == -1 ? s.Length : end;
                                         string worder_hdr_cust_field_2 = s.Substring(0, end);
-
-                                        //string worder_hdr_cust_field_2 = campos[50].ToString();
-
 
                                         string worder_hdr_cust_field_3 = campos[51].ToString();
                                         string worder_hdr_cust_field_5 = campos[53].ToString();
@@ -524,6 +513,8 @@ namespace CapaInterface
                                         string worder_hdr_cust_number_4 = campos[105].ToString();
 
                                         string worder_hdr_cust_short_text_1 = campos[112].ToString();
+                                        string worder_hdr_cust_short_text_5 = campos[116].ToString();//Cliente Original
+
                                         string worder_dtl_cust_short_text_1 = campos[142].ToString();// Numero de Orden de Compra
 
                                         string winvn_attr_f = campos[159].ToString();
@@ -552,7 +543,7 @@ namespace CapaInterface
                                             wpre_pack_code, wpre_pack_ratio, wpre_pack_ratio_seq, whazmat, wshipped_uom, wshipped_qty, wob_lpn_weight,
                                             wob_lpn_volume, wob_lpn_shipping_charge, wob_lpn_type, worder_hdr_cust_number_1, worder_hdr_cust_number_2,
                                             worder_hdr_cust_number_3, worder_hdr_cust_number_4, winvn_attr_f, worder_type, wob_lpn_length, wob_lpn_width, wob_lpn_height,
-                                            worder_hdr_cust_short_text_1, worder_dtl_cust_short_text_1, werp_fulfillment_line_ref, wsales_order_line_ref, wsales_order_schedule_ref, wtms_order_hdr_ref, wtms_order_dtl_ref);
+                                            worder_hdr_cust_short_text_1, worder_hdr_cust_short_text_5, worder_dtl_cust_short_text_1, werp_fulfillment_line_ref, wsales_order_line_ref, wsales_order_schedule_ref, wtms_order_hdr_ref, wtms_order_dtl_ref);
                                     }
                                 }
                                 catch (Exception ex)
@@ -587,9 +578,6 @@ namespace CapaInterface
 
                 if (wtipo == "SVH")
                 {
-                    //Arr_Txt_Svh = Directory.GetFiles(@carpetatemporal, "SVH*.*");//cabecera
-                    //Arr_Txt_Svd = Directory.GetFiles(@carpetatemporal, "SVD*.*");//detalle
-
                     if ((Arr_Txt_Svh.Length == 0) && (Arr_Txt_Svd.Length == 0))// Si no hay informacion... retorna
                     {
                         return false;
@@ -767,8 +755,6 @@ namespace CapaInterface
 
                 if (wtipo == "IHT")
                 {
-                    //Arr_Txt_Iht = Directory.GetFiles(@carpetatemporal, "IHT*.*");
-
                     if ((Arr_Txt_Iht.Length == 0)) // Si no hay informacion... retorna
                     {
                         return false;
