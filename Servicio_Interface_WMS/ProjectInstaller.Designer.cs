@@ -43,6 +43,7 @@
             this.serviceInstaller1.DisplayName = "Servicio Interface WMS";
             this.serviceInstaller1.ServiceName = "ServicioInterfaceWMS";
             this.serviceInstaller1.StartType = System.ServiceProcess.ServiceStartMode.Automatic;
+            this.serviceInstaller1.AfterInstall += new System.Configuration.Install.InstallEventHandler(this.serviceInstaller1_AfterInstall);
             // 
             // ProjectInstaller
             // 
