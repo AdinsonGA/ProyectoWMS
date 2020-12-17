@@ -239,12 +239,11 @@ namespace CapaInterface
                 dt_OBS.Columns.Add("invn_attr_f", typeof(string));
                 dt_OBS.Columns.Add("order_type", typeof(string));
 
-                dt_OBS.Columns.Add("order_hdr_cust_short_text_5", typeof(string));//Nombre del CLiente original
-
                 dt_OBS.Columns.Add("ob_lpn_length", typeof(decimal));
                 dt_OBS.Columns.Add("ob_lpn_width", typeof(decimal));
                 dt_OBS.Columns.Add("ob_lpn_height", typeof(decimal));
                 dt_OBS.Columns.Add("order_hdr_cust_short_text_1", typeof(string));
+                dt_OBS.Columns.Add("order_hdr_cust_short_text_5", typeof(string));//Nombre del CLiente original
                 dt_OBS.Columns.Add("order_dtl_cust_short_text_1", typeof(string));// Numero de Orden de Compra
 
                 dt_OBS.Columns.Add("erp_fulfillment_line_ref", typeof(int));
