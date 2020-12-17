@@ -342,12 +342,19 @@ namespace CapaInterface
                     str.Append(Convert.ToDateTime(datarow["cgud_femis"]).ToString("yyyyMMdd") + delimited);        // Fecha emision
                     str.Append("" + delimited);                                      // exp_date
                     str.Append(Convert.ToDateTime(datarow["cgud_femis"]).ToString("yyyyMMdd") + delimited);        // Fecha de entrega requerida
-                    str.Append(datarow["cgud_tndcl"].ToString() + delimited);        // dest_facility_code (cod tienda)
+
+                    // 16-12-2020 ALMACEN I SE ENVIA CON CLIENTE GENERICO, SOLICITUD DE OFRACIO
+                    var wcliente = (datarow["cgud_almac"].ToString() == "I") ? "92070" : datarow["cgud_tndcl"].ToString();
+                    str.Append(wcliente + delimited);        // dest_facility_code (cod tienda)   
+                    //str.Append(datarow["cgud_tndcl"].ToString() + delimited);        // dest_facility_code (cod tienda)                    
+
                     str.Append("" + delimited);
                     str.Append("" + delimited);
                     str.Append("" + delimited);
                     str.Append("" + delimited);
-                    str.Append("" + delimited);
+                    //str.Append("" + delimited);
+                    str.Append(datarow["cgud_tndcl"].ToString() + delimited);        // ref_nbr (cod tienda/cliente original) 
+
                     str.Append(waction + delimited);                                 // action code
                     str.Append("" + delimited);
                     str.Append("" + delimited);
@@ -358,7 +365,9 @@ namespace CapaInterface
                     str.Append("" + delimited);
                     str.Append("" + delimited);
                     str.Append("" + delimited);
-                    str.Append(datarow["cgud_tndcl"].ToString() + delimited);       // Tienda ??? COD CLIENTE
+
+                    str.Append(wcliente + delimited);       // Tienda - COD CLIENTE
+                    //str.Append(datarow["cgud_tndcl"].ToString() + delimited);       // Tienda - COD CLIENTE
 
                     for (int i = 1; i <= 17; i++)
                     { str.Append("" + delimited); };

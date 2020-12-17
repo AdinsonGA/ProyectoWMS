@@ -14,5 +14,10 @@ namespace Servicio_Interface_WMS
         {
             InitializeComponent();
         }
+
+        private void serviceInstaller1_AfterInstall(object sender, InstallEventArgs e)
+        {
+
+        }
     }
 }
