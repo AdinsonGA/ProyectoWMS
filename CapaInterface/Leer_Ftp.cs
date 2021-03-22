@@ -132,6 +132,7 @@ namespace CapaInterface
                 transferOptions.PreserveTimestamp = false;
                 transferOptions.TransferMode = TransferMode.Binary;
                 transferOptions.FileMask = "*.*|success/";
+                //transferOptions.FileMask = "*.tmp|success/";
 
                 TransferOperationResult transferResult1;
                 TransferOperationResult transferResult2;
@@ -163,8 +164,26 @@ namespace CapaInterface
 
                 string carpetatemporal = Crear_Carpetas.WORK;
 
+                //var allFiles = Directory.GetFiles(@"C:\Path\", "");
+                //var filesToExclude = Directory.GetFiles(@"C:\Path\", "*.txt");
+                //var wantedFiles = allFiles.Except(filesToExclude);
+
+
+
                 Arr_Txt_Obl = Directory.GetFiles(@carpetatemporal, "OBL*.*");//cabecera
+
+
+
+                //Aplicando el Filtro, que no incluya los *.tmp en el arreglo
                 Arr_Txt_Obs = Directory.GetFiles(@carpetatemporal, "OBS*.*");//detalle
+
+                //var allFiles = Directory.GetFiles(@carpetatemporal, "OBS*.*");
+                //var filesToExclude = Directory.GetFiles(@carpetatemporal, "*.tmp");
+                //var Arr_Txt_Obs = allFiles.Except(filesToExclude);
+
+
+
+
 
                 Arr_Txt_Svh = Directory.GetFiles(@carpetatemporal, "SVH*.*");//cabecera
                 Arr_Txt_Svd = Directory.GetFiles(@carpetatemporal, "SVD*.*");//detalle
@@ -189,23 +208,27 @@ namespace CapaInterface
                 dt_OBL.Columns.Add("ship_date", typeof(DateTime));
                 dt_OBL.Columns.Add("ship_date_time", typeof(DateTime));
 
-                //--------- Creamos tabla OBS ----------//
-                dt_OBS.Columns.Add("hdr_group_nbr", typeof(string));
-                dt_OBS.Columns.Add("facility_code", typeof(string));
-                dt_OBS.Columns.Add("company_code", typeof(string));
-                dt_OBS.Columns.Add("load_manifest_nbr", typeof(string));
-                dt_OBS.Columns.Add("line_nbr", typeof(int));
-                dt_OBS.Columns.Add("seq_nbr", typeof(int));
-                dt_OBS.Columns.Add("stop_nbr_of_oblpns", typeof(int));
-                dt_OBS.Columns.Add("stop_weight", typeof(Decimal));
-                dt_OBS.Columns.Add("stop_volume", typeof(Decimal));
-                dt_OBS.Columns.Add("shipto_facility_code", typeof(string));
 
-                dt_OBS.Columns.Add("dest_facility_code", typeof(string));
-                dt_OBS.Columns.Add("order_nbr", typeof(string));
-                dt_OBS.Columns.Add("ord_date", typeof(DateTime));
-                dt_OBS.Columns.Add("req_ship_date", typeof(DateTime));
-                dt_OBS.Columns.Add("customer_po_nbr", typeof(string));
+                //--------- Creamos tabla OBS ----------//
+                dt_OBS.Columns.Add("hdr_group_nbr", typeof(string));                //0
+                dt_OBS.Columns.Add("facility_code", typeof(string));                //1
+                dt_OBS.Columns.Add("company_code", typeof(string));                 //2
+                dt_OBS.Columns.Add("load_manifest_nbr", typeof(string));            //4
+                dt_OBS.Columns.Add("line_nbr", typeof(int));                        //5
+                dt_OBS.Columns.Add("seq_nbr", typeof(int));                         //6
+                dt_OBS.Columns.Add("stop_nbr_of_oblpns", typeof(int));              //9
+                dt_OBS.Columns.Add("stop_weight", typeof(Decimal));                 //10
+                dt_OBS.Columns.Add("stop_volume", typeof(Decimal));                 //11
+                dt_OBS.Columns.Add("shipto_facility_code", typeof(string));         //13
+
+                dt_OBS.Columns.Add("dest_facility_code", typeof(string));           //25
+                dt_OBS.Columns.Add("cust_email", typeof(string));                   //35    nuevo 20/03/2021
+                dt_OBS.Columns.Add("cust_contact", typeof(string));                 //36    nuevo 20/03/2021
+
+                dt_OBS.Columns.Add("order_nbr", typeof(string));                    //38
+                dt_OBS.Columns.Add("ord_date", typeof(DateTime));                   //39
+                dt_OBS.Columns.Add("req_ship_date", typeof(DateTime));              //41
+                dt_OBS.Columns.Add("customer_po_nbr", typeof(string));              //45
                 dt_OBS.Columns.Add("dest_dept_nbr", typeof(string));
                 dt_OBS.Columns.Add("order_hdr_cust_field_1", typeof(string));
                 dt_OBS.Columns.Add("order_hdr_cust_field_2", typeof(string));
@@ -469,10 +492,28 @@ namespace CapaInterface
                                         string wshipto_facility_code = campos[13].ToString();
 
                                         string wdest_facility_code = campos[25].ToString();
+                                        string wcust_email = campos[35].ToString();
+                                        string wcust_contact = campos[36].ToString();
+
                                         string worder_nbr = campos[38].ToString();
+                                        string worder_type = campos[161].ToString();
+
 
                                         DateTime word_date = DateTime.ParseExact(campos[39].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
-                                        DateTime wreq_ship_date = DateTime.ParseExact(campos[41].ToString(), "yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture);
+                                        DateTime wreq_ship_date = DateTime.ParseExact(campos[39].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+
+                                        if (worder_type == "6C")
+                                        {
+                                            worder_nbr = "V" + worder_nbr;
+                                            if (string.IsNullOrEmpty(campos[41].ToString()))
+                                            {
+                                                wreq_ship_date = word_date;
+                                            }
+                                            else
+                                            {
+                                                wreq_ship_date = DateTime.ParseExact(campos[41].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+                                            }
+                                        }
 
                                         string wcustomer_po_nbr = campos[45].ToString();
                                         string wdest_dept_nbr = campos[48].ToString();
@@ -517,7 +558,7 @@ namespace CapaInterface
                                         string worder_dtl_cust_short_text_1 = campos[142].ToString();// Numero de Orden de Compra
 
                                         string winvn_attr_f = campos[159].ToString();
-                                        string worder_type = campos[161].ToString();
+//                                        string worder_type = campos[161].ToString();
                                         string wob_lpn_length = campos[165].ToString();
                                         string wob_lpn_width = campos[166].ToString();
                                         string wob_lpn_height = campos[167].ToString();
@@ -535,8 +576,9 @@ namespace CapaInterface
                                         string wtms_order_hdr_ref = campos[184].ToString();
                                         string wtms_order_dtl_ref = campos[185].ToString();
 
+
                                         dtAux_OBS.Rows.Add(whdr_group_nbr, wfacility_code, wcompany_code, wload_manifest_nbr, wline_nbr, wseq_nbr, wstop_nbr_of_oblpns,
-                                            wstop_weight, wstop_volume, wshipto_facility_code, wdest_facility_code, worder_nbr, word_date, wreq_ship_date, wcustomer_po_nbr,
+                                            wstop_weight, wstop_volume, wshipto_facility_code, wdest_facility_code, wcust_email, wcust_contact, worder_nbr, word_date, wreq_ship_date, wcustomer_po_nbr,
                                             wdest_dept_nbr, worder_hdr_cust_field_1, worder_hdr_cust_field_2, worder_hdr_cust_field_3, worder_hdr_cust_field_5,
                                             worder_seq_nbr, wob_lpn_nbr, witem_alternate_code, witem_part_a, witem_part_b, witem_part_c, witem_part_d,
                                             wpre_pack_code, wpre_pack_ratio, wpre_pack_ratio_seq, whazmat, wshipped_uom, wshipped_qty, wob_lpn_weight,
