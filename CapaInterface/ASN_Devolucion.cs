@@ -287,7 +287,7 @@ namespace CapaInterface
                 str.Append("" + delimited);
                 str.Append("DEV" + delimited);                                   // DEV
                 str.Append("" + delimited);
-                str.Append("" + delimited);
+                str.Append(datarow["desc_ndesp"].ToString() + delimited); //nro de manifiesto
                 str.Append("" + delimited);
                 str.Append(datarow["cod_asociado"].ToString() + delimited); // codigo de asociado **
                 str.Append(datarow["desc_almac"].ToString() + delimited);        // Tienda
