@@ -229,17 +229,17 @@ namespace CapaInterface
                 dt_OBS.Columns.Add("ord_date", typeof(DateTime));                   //39
                 dt_OBS.Columns.Add("req_ship_date", typeof(DateTime));              //41
                 dt_OBS.Columns.Add("customer_po_nbr", typeof(string));              //45
-                dt_OBS.Columns.Add("dest_dept_nbr", typeof(string));
-                dt_OBS.Columns.Add("order_hdr_cust_field_1", typeof(string));
-                dt_OBS.Columns.Add("order_hdr_cust_field_2", typeof(string));
-                dt_OBS.Columns.Add("order_hdr_cust_field_3", typeof(string));
-                dt_OBS.Columns.Add("order_hdr_cust_field_5", typeof(string));//Observacion
-                dt_OBS.Columns.Add("order_seq_nbr", typeof(int));
+                dt_OBS.Columns.Add("dest_dept_nbr", typeof(string));                //48
+                dt_OBS.Columns.Add("order_hdr_cust_field_1", typeof(string));       //49
+                dt_OBS.Columns.Add("order_hdr_cust_field_2", typeof(string));       //50
+                dt_OBS.Columns.Add("order_hdr_cust_field_3", typeof(string));       //51
+                dt_OBS.Columns.Add("order_hdr_cust_field_5", typeof(string));       //53 Observacion
+                dt_OBS.Columns.Add("order_seq_nbr", typeof(int));                   //54
 
-                dt_OBS.Columns.Add("ob_lpn_nbr", typeof(string));
-                dt_OBS.Columns.Add("item_alternate_code", typeof(string));
-                dt_OBS.Columns.Add("item_part_a", typeof(string));
-                dt_OBS.Columns.Add("item_part_b", typeof(string));
+                dt_OBS.Columns.Add("ob_lpn_nbr", typeof(string));                   //60
+                dt_OBS.Columns.Add("item_alternate_code", typeof(string));          //61
+                dt_OBS.Columns.Add("item_part_a", typeof(string));                  //62
+                dt_OBS.Columns.Add("item_part_b", typeof(string));                  //63
                 dt_OBS.Columns.Add("item_part_c", typeof(string));
                 dt_OBS.Columns.Add("item_part_d", typeof(string));
                 dt_OBS.Columns.Add("pre_pack_code", typeof(string));
@@ -502,9 +502,22 @@ namespace CapaInterface
                                         DateTime word_date = DateTime.ParseExact(campos[39].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
                                         DateTime wreq_ship_date = DateTime.ParseExact(campos[39].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
 
+                                        string s = campos[50].ToString();
+                                        int end = s.IndexOf(" ");
+                                        end = end == -1 ? s.Length : end;
+                                        string worder_hdr_cust_field_2 = s.Substring(0, end);
+
+                                        string worder_hdr_cust_field_3 = campos[51].ToString();
+
+
+
                                         if (worder_type == "6C")
                                         {
                                             worder_nbr = "V" + worder_nbr;
+                                            worder_hdr_cust_field_2 = string.IsNullOrEmpty(campos[50].ToString()) ? "C" : campos[50].ToString();
+                                            worder_hdr_cust_field_3 = string.IsNullOrEmpty(campos[51].ToString()) ? "6" : campos[51].ToString();
+
+
                                             if (string.IsNullOrEmpty(campos[41].ToString()))
                                             {
                                                 wreq_ship_date = word_date;
@@ -514,17 +527,21 @@ namespace CapaInterface
                                                 wreq_ship_date = DateTime.ParseExact(campos[41].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
                                             }
                                         }
+                                        else
+                                        {
+                                            wreq_ship_date = DateTime.ParseExact(campos[41].Substring(0, 8).ToString(), "yyyyMMdd", System.Globalization.CultureInfo.InvariantCulture);
+                                        }
 
                                         string wcustomer_po_nbr = campos[45].ToString();
                                         string wdest_dept_nbr = campos[48].ToString();
                                         string worder_hdr_cust_field_1 = campos[49].ToString();
 
-                                        string s = campos[50].ToString();
-                                        int end = s.IndexOf(" ");
-                                        end = end == -1 ? s.Length : end;
-                                        string worder_hdr_cust_field_2 = s.Substring(0, end);
+                                        //string s = campos[50].ToString();
+                                        //int end = s.IndexOf(" ");
+                                        //end = end == -1 ? s.Length : end;
+                                        //string worder_hdr_cust_field_2 = s.Substring(0, end);
 
-                                        string worder_hdr_cust_field_3 = campos[51].ToString();
+                                        //string worder_hdr_cust_field_3 = campos[51].ToString();
                                         string worder_hdr_cust_field_5 = campos[53].ToString();
 
 
